@@ -389,7 +389,8 @@ namespace PKHeX.Core
                 MarkG2Slots(ref SlotsC);
                 MarkG2Slots(ref SlotsGSC);
                 Evolves2 = new EvolutionTree(new[] { Resources.evos_gsc }, GameVersion.GSC, PersonalTable.C, MaxSpeciesID_2);
-                EggBreeding2 = new EggBreeding(2, Evolves2, PersonalTable.C, new[] { EggMovesC, EggMovesGS });
+                //Every species in Crystal contains all the egg moves from the same species in GS
+                EggBreeding2 = new EggBreeding(2, Evolves2, PersonalTable.C, EggMovesC);
             }
             // Gen3
             {
@@ -429,7 +430,7 @@ namespace PKHeX.Core
                 for (int i = 0; i <= MaxSpeciesID_3; i++)
                     PersonalTable.E[i].AddTypeTutors(tutors[i]);
 
-                EggBreeding3 = new EggBreeding(3, Evolves3, PersonalTable.E, new[] { EggMovesRS });
+                EggBreeding3 = new EggBreeding(3, Evolves3, PersonalTable.E, EggMovesRS);
             }
             // Gen 4
             {
@@ -485,7 +486,8 @@ namespace PKHeX.Core
                 for (int i = 0; i <= MaxSpeciesID_4; i++)
                     PersonalTable.HGSS[i].AddTypeTutors(tutors[i]);
 
-                EggBreeding4 = new EggBreeding(4, Evolves4, PersonalTable.HGSS, new[] { EggMovesHGSS, EggMovesDPPt });
+                //Every species in HGSS contains all the egg moves from the same species in DPPt
+                EggBreeding4 = new EggBreeding(4, Evolves4, PersonalTable.HGSS, EggMovesHGSS);
             }
             // Gen 5
             {
@@ -515,7 +517,7 @@ namespace PKHeX.Core
                 SlotsW2 = addExtraTableSlots(W2Slots, SlotsW2_Swarm).Concat(SlotsW2_HiddenGrotto).ToArray();
 
                 Evolves5 = new EvolutionTree(new[] { Resources.evos_g5 }, GameVersion.BW, PersonalTable.BW, MaxSpeciesID_5);
-                EggBreeding5 = new EggBreeding(5, Evolves5, PersonalTable.BW, new[] { EggMovesBW });
+                EggBreeding5 = new EggBreeding(5, Evolves5, PersonalTable.BW, EggMovesBW);
             }
             // Gen 6
             {

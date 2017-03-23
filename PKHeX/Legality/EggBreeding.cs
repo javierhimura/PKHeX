@@ -25,7 +25,7 @@ namespace PKHeX.Core
         protected PersonalTable Personal;
         protected EvolutionTree Evolves;
 
-        internal EggBreeding(int gen, EvolutionTree Evos, PersonalTable Perso, EggMoves[][] EggLearnSet)
+        internal EggBreeding(int gen, EvolutionTree Evos, PersonalTable Perso, EggMoves[] EggLearnSet)
         {
             GenOrigin = gen;
             GenFormat = gen;
@@ -41,7 +41,7 @@ namespace PKHeX.Core
             BreedingMoves = new int[maxSpecies][];
             EggBreedingMoves = new int[maxSpecies][];
             ChainBreedingMoves = new int[maxSpecies][];
-            EggMoves = EggLearnSet.SelectMany(e => e).SelectMany(e => e.Moves).Distinct().ToArray();
+            EggMoves = EggLearnSet.SelectMany(e => e.Moves).Distinct().ToArray();
             for (int i = 1; i < maxSpecies; i++)
             {
                 // Exclude female only,no gender and undiscover egg group species
