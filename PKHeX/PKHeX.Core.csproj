@@ -155,6 +155,7 @@
     <Compile Include="Legality\CheckStrings.cs" />
     <Compile Include="Legality\Core.cs" />
     <Compile Include="Legality\Data.cs" />
+    <Compile Include="Legality\EggBreeding.cs" />
     <Compile Include="Legality\Structures\DexLevel.cs" />
     <Compile Include="Legality\Structures\EggMoves.cs" />
     <Compile Include="Legality\Structures\EncounterArea.cs" />
