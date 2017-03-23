@@ -171,6 +171,24 @@ namespace PKHeX.Core
             int maxSpeciesOrigin = Legal.getMaxSpeciesOrigin(pkm);
             return Lineage[index].getExplicitLineage(pkm, lvl, skipChecks, MaxSpeciesTree, maxSpeciesOrigin);
         }
+        public int[] TreeEggGroup(int index)
+        {
+            if (CanEvolve(index) && Personal[index].EggGroups.Any(g => g == 15))
+            {
+                return TreeEggGroup(Entries[index].PossibleEvolutions.First().Species);
+            }
+            return Personal[index].EggGroups;
+        }
+
+        public bool CanEvolve(int index)
+        {
+            return Entries[index].PossibleEvolutions.Any(s => s.Species > 0);
+        }
+        public IEnumerable<DexLevel> getValidPreEvolutions(int Species, int Generation)
+        {
+            int maxSpeciesOrigin = Legal.getMaxSpeciesOrigin(Generation);
+            return Lineage[Species].getExplicitLineage(Species, maxSpeciesOrigin);
+        }
     }
 
     public abstract class EvolutionSet
@@ -609,7 +627,33 @@ namespace PKHeX.Core
         {
             Chain.Insert(0, evo);
         }
+        public IEnumerable<DexLevel> getExplicitLineage(int Species, int maxSpeciesOrigin)
+        {
+            int lvl = 100;
+            List<DexLevel> dl = new List<DexLevel> { new DexLevel { Species = Species, Level = lvl } };
+            for (int i = Chain.Count - 1; i >= 0; i--) // reverse evolution!
+            {
+                foreach (var evo in Chain[i].StageEntryMethods)
+                {
+                    updateMinValues(dl, evo);
+                    int species = evo.Species;
+                    dl.Add(evo.GetDexLevel(species, lvl));
 
+                    if (evo.RequiresLevelUp)
+                        lvl--;
+                    break;
+                }
+            }
+
+            // Remove future gen preevolutions, no munchlax in a gen3 snorlax, no pichu in a gen1 vc raichu, etc
+            if (dl.Any(d => d.Species <= maxSpeciesOrigin) && dl.Last().Species > maxSpeciesOrigin)
+                dl.RemoveAt(dl.Count - 1);
+
+            // Last species is the wild/hatched species, the minimum is 1 because it has not evolved from previous species
+            dl.Last().MinLevel = 1;
+            dl.Last().RequiresLvlUp = false;
+            return dl;
+        }
         public IEnumerable<DexLevel> getExplicitLineage(PKM pkm, int lvl, bool skipChecks, int maxSpeciesTree, int maxSpeciesOrigin)
         {
             List<DexLevel> dl = new List<DexLevel> { new DexLevel { Species = pkm.Species, Level = lvl, Form = pkm.AltForm } };
