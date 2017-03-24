@@ -183,7 +183,11 @@ namespace PKHeX.Core
             int[] combinations_ko = new [] { 0, 0, 0, 0, 0 };
             int[] max_depth = new [] { 0, 0, 0, 0, 0 };
             EB.MaxDepth = Limit;
-            DateTime Start = DateTime.Now;
+            List<int> SpeciesCheck = new List<int>();
+            DateTime[] Durations = new DateTime[5];
+            DateTime[] Starts = new DateTime[5];
+            DateTime[] Ends = new DateTime[5];
+
             for (int species = 1; species <= Legal.getMaxSpeciesOrigin(EB.GenOrigin); species++)
             {
                 if (Legal.NoHatchFromEgg.Contains(species))
@@ -192,14 +196,30 @@ namespace PKHeX.Core
                     continue;
                 //Check only species that can hatch from an egg, not include evolved species of species hatched
                 speciesegg++;
+                SpeciesCheck.Add(species);
+            }
 
+            int depth = 0;
+            Starts[0] = Starts[1] = DateTime.Now;
+            
+            foreach (int species in SpeciesCheck)
+            {
                 for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
                 {
-                    int depth = 0;
+                    depth = 0;
                     bool Move1Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1] }, out depth);
                     combinations[1]++;
                     if (Move1Ok) combinations_ok[1]++; else combinations_ko[1]++;
                     max_depth[1] = Math.Max(depth, max_depth[1]);
+                }
+            }
+            Ends[1] = DateTime.Now;
+
+            Starts[2] = DateTime.Now;
+            foreach (int species in SpeciesCheck)
+            {
+                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
+                {
                     for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
                     {
                         depth = 0;
@@ -207,6 +227,18 @@ namespace PKHeX.Core
                         combinations[2]++;
                         if (Move2Ok) combinations_ok[2]++; else combinations_ko[2]++;
                         max_depth[2] = Math.Max(depth, max_depth[2]);
+                    }
+                }
+            }
+            Ends[2] = DateTime.Now;
+
+            Starts[3] = DateTime.Now;
+            foreach (int species in SpeciesCheck)
+            {
+                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
+                {
+                    for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
+                    {
                         for (int move3 = move2 + 1; move3 < EggLearnSet[species].Moves.Length; move3++)
                         {
                             depth = 0;
@@ -214,6 +246,21 @@ namespace PKHeX.Core
                             combinations[3]++;
                             max_depth[3] = Math.Max(depth, max_depth[3]);
                             if (Move3Ok) combinations_ok[3]++; else combinations_ko[3]++;
+                        }
+                    }
+                }
+            }
+            Ends[3] = DateTime.Now;
+
+            Starts[4] = DateTime.Now;
+            foreach (int species in SpeciesCheck)
+            {
+                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
+                {
+                    for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
+                    {
+                        for (int move3 = move2 + 1; move3 < EggLearnSet[species].Moves.Length; move3++)
+                        {
                             for (int move4 = move3 + 1; move4 < EggLearnSet[species].Moves.Length; move4++)
                             {
                                 depth = 0;
@@ -226,12 +273,32 @@ namespace PKHeX.Core
                     }
                 }
             }
+            Ends[4] = Ends[0] = DateTime.Now;
+            combinations[0] = combinations.Sum();
+            combinations_ok[0] = combinations_ok.Sum();
+            combinations_ko[0] = combinations_ko.Sum();
 
-            DateTime End = DateTime.Now;
-            TimeSpan Diff = End - Start;
+            TimeSpan[] Diff = new[]
+            {
+                Ends[0] -Starts[0],
+                Ends[1] -Starts[1],
+                Ends[2] -Starts[2],
+                Ends[3] -Starts[3],
+                Ends[4] -Starts[4]
+            };
+
+            TimeSpan[] Avg = new[]
+            {
+                new TimeSpan(Diff[0].Ticks / combinations[0]),
+                new TimeSpan(Diff[1].Ticks / combinations[1]),
+                new TimeSpan(Diff[2].Ticks / combinations[2]),
+                new TimeSpan(Diff[3].Ticks / combinations[3]),
+                new TimeSpan(Diff[4].Ticks / combinations[4])
+            };
+
             sb.AppendLine($"EGG BREEDING TESTING GEN {EB.GenOrigin}");
             sb.AppendLine($"DEEPTH LIMITED TO {Limit[1]}/{Limit[2]}/{Limit[3]}/{Limit[4]}");
-            sb.AppendLine($"DURATION {Diff.ToString()}");
+            sb.AppendLine($"DURATION {Diff[0].ToString()}");
             sb.AppendLine($"TOTAL EGG SPECIES {speciesegg}");
             sb.AppendLine();
             for (int i = 1; i <= 4; i++)
@@ -239,11 +306,14 @@ namespace PKHeX.Core
                 sb.AppendLine($"EGG COMBINATIONS {i} MOVES");
                 sb.AppendLine($"TOTAL {combinations[i]} OK {combinations_ok[i]} KO {combinations_ko[i]}");
                 sb.AppendLine($"MAX DEPTH {max_depth[i]}");
+                sb.AppendLine($"DURATION {Diff[i].ToString()}");
+                sb.AppendLine($"AVERAGE {Avg[i].ToString()}");
             }
 
             sb.AppendLine();
             sb.AppendLine($"EGG COMBINATIONS TOTAL");
-            sb.AppendLine($"TOTAL {combinations.Sum()} OK {combinations_ok.Sum()} KO {combinations_ko.Sum()}");
+            sb.AppendLine($"TOTAL {combinations[0]} OK {combinations_ok[0]} KO {combinations_ko[0]}");
+            sb.AppendLine($"AVERAGE {Avg[0].ToString()}");
             sb.AppendLine($"MAX DEPTH {max_depth.Max()}");
             sb.AppendLine();
 
@@ -251,6 +321,10 @@ namespace PKHeX.Core
         }
         internal static void TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet)
         {
+
+            int[] calc = new[] { 0, 5, 6, 6, 6 };
+            TestBreeding(EB, EggLearnSet, calc);
+
             int[] last_ok = new[] { 0, 0, 0, 0, 0};
             int[] max = new[] { 0, 0, 0, 0, 0 };
             for (int i =1;i<= 10; i++)
