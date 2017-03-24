@@ -24,6 +24,8 @@ namespace PKHeX.Core
         protected int[] EggMoves;
         protected PersonalTable Personal;
         protected EvolutionTree Evolves;
+        protected int[] MaxDepth = { 0, 7 , 7, 7, 7 };
+        // protected int[] MaxDepth = { 0, 8, 8, 8, 8 };
 
         internal EggBreeding(int gen, EvolutionTree Evos, PersonalTable Perso, EggMoves[] EggLearnSet)
         {
@@ -110,8 +112,8 @@ namespace PKHeX.Core
         {
             var eggGroup = getEggBreedingGroups(species);
             IEnumerable<int> fathers = PotentialFathersEggGroup.Where((t, i) => eggGroup.Any(g => g == i)).SelectMany(f => f).Distinct();
-            if (excludedfathers != null)
-                fathers = fathers.Where(f => !excludedfathers.Any(e => species == f));
+            if(excludedfathers!=null)
+                fathers = fathers.Except(excludedfathers);
             return fathers;
         }
 
@@ -132,18 +134,24 @@ namespace PKHeX.Core
             return getChainEggFathers;
         }
 
-        internal bool ValidEggMoves(int species, IEnumerable<int> eggmoves)
+        internal bool ValidEggMoves(int species, IEnumerable<int> eggmoves, out int depth_found)
         {
-            return ValidEggMoves(species, eggmoves, new List<int>());
+            return ValidEggMoves(species, eggmoves, new List<int>(), 1, MaxDepth[eggmoves.Count()], out depth_found);
         }
 
         // Check if a combination of species and eggmoves is legal
-        internal virtual bool ValidEggMoves(int species, IEnumerable<int> eggmoves, IEnumerable<int> PrevExcludedFathers)
+        internal virtual bool ValidEggMoves(int species, IEnumerable<int> eggmoves, IEnumerable<int> PrevExcludedFathers, int current_depth, int max_depth, out int depth_found)
         {
+            depth_found = -1;
             //If there is one father that learn all the eggmoves 
             // without having itself any of these moves as egg moves then the combination is legal
             if (HaveNonChainFather(species, eggmoves))
+            {
+                depth_found = current_depth;
                 return true;
+            }
+            if (current_depth >= max_depth)
+                return false;
 
             // If there is no father without chains check potential father that inherit the moves in egg chains
             var fathers = getCompatibleFathers(species, PrevExcludedFathers);
@@ -153,11 +161,111 @@ namespace PKHeX.Core
                 // For every potential father check the legallity of father species and moves that the father learns as egg move
                 // The current species if added to a exclusion list to avoid the aplicattion to enter into egg chains loops
                 IEnumerable<int> ExcludedFathers = PrevExcludedFathers.Concat(new List<int> { species });
-                if (ValidEggMoves(Chain.Species, Chain.Moves, ExcludedFathers))
+                if (ValidEggMoves(Chain.Species, Chain.Moves, ExcludedFathers, current_depth+1, max_depth, out depth_found))
                     return true;
             }
 
             return false;
+        }
+
+        static StringBuilder sb = new StringBuilder();
+        internal static int[] TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet, int Limit)
+        {
+           int[] limits = new[] { 0, Limit, Limit, Limit, Limit };
+            return TestBreeding(EB, EggLearnSet, limits);
+        }
+
+        internal static int[] TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet, int[] Limit)
+        {
+            int speciesegg = 0;
+            int[] combinations = new [] { 0, 0, 0, 0, 0 };
+            int[] combinations_ok = new [] { 0, 0, 0, 0, 0 };
+            int[] combinations_ko = new [] { 0, 0, 0, 0, 0 };
+            int[] max_depth = new [] { 0, 0, 0, 0, 0 };
+            EB.MaxDepth = Limit;
+            DateTime Start = DateTime.Now;
+            for (int species = 1; species <= Legal.getMaxSpeciesOrigin(EB.GenOrigin); species++)
+            {
+                if (Legal.NoHatchFromEgg.Contains(species))
+                    continue;
+                if (EggLearnSet[species].Moves.Length == 0)
+                    continue;
+                //Check only species that can hatch from an egg, not include evolved species of species hatched
+                speciesegg++;
+
+                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
+                {
+                    int depth = 0;
+                    bool Move1Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1] }, out depth);
+                    combinations[1]++;
+                    if (Move1Ok) combinations_ok[1]++; else combinations_ko[1]++;
+                    max_depth[1] = Math.Max(depth, max_depth[1]);
+                    for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
+                    {
+                        depth = 0;
+                        bool Move2Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1], EggLearnSet[species].Moves[move2] }, out depth);
+                        combinations[2]++;
+                        if (Move2Ok) combinations_ok[2]++; else combinations_ko[2]++;
+                        max_depth[2] = Math.Max(depth, max_depth[2]);
+                        for (int move3 = move2 + 1; move3 < EggLearnSet[species].Moves.Length; move3++)
+                        {
+                            depth = 0;
+                            bool Move3Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1], EggLearnSet[species].Moves[move2], EggLearnSet[species].Moves[move3] }, out depth);
+                            combinations[3]++;
+                            max_depth[3] = Math.Max(depth, max_depth[3]);
+                            if (Move3Ok) combinations_ok[3]++; else combinations_ko[3]++;
+                            for (int move4 = move3 + 1; move4 < EggLearnSet[species].Moves.Length; move4++)
+                            {
+                                depth = 0;
+                                bool Move4Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1], EggLearnSet[species].Moves[move2], EggLearnSet[species].Moves[move3], EggLearnSet[species].Moves[move4] }, out depth);
+                                combinations[4]++;
+                                if (Move4Ok) combinations_ok[4]++; else combinations_ko[4]++;
+                                max_depth[4] = Math.Max(depth, max_depth[4]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            DateTime End = DateTime.Now;
+            TimeSpan Diff = End - Start;
+            sb.AppendLine($"EGG BREEDING TESTING GEN {EB.GenOrigin}");
+            sb.AppendLine($"DEEPTH LIMITED TO {Limit[1]}/{Limit[2]}/{Limit[3]}/{Limit[4]}");
+            sb.AppendLine($"DURATION {Diff.ToString()}");
+            sb.AppendLine($"TOTAL EGG SPECIES {speciesegg}");
+            sb.AppendLine();
+            for (int i = 1; i <= 4; i++)
+            {
+                sb.AppendLine($"EGG COMBINATIONS {i} MOVES");
+                sb.AppendLine($"TOTAL {combinations[i]} OK {combinations_ok[i]} KO {combinations_ko[i]}");
+                sb.AppendLine($"MAX DEPTH {max_depth[i]}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine($"EGG COMBINATIONS TOTAL");
+            sb.AppendLine($"TOTAL {combinations.Sum()} OK {combinations_ok.Sum()} KO {combinations_ko.Sum()}");
+            sb.AppendLine($"MAX DEPTH {max_depth.Max()}");
+            sb.AppendLine();
+
+            return combinations_ok;
+        }
+        internal static void TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet)
+        {
+            int[] last_ok = new[] { 0, 0, 0, 0, 0};
+            int[] max = new[] { 0, 0, 0, 0, 0 };
+            for (int i =1;i<= 10; i++)
+            {
+                int[] ok = TestBreeding(EB, EggLearnSet, i);
+                for(int move =1;move <=4;move ++)
+                {
+                    if (ok[move] == last_ok[move] && max[move]==0)
+                        max[move] = i - 1;
+                }
+                last_ok = ok;
+                if (max.Skip(1).All(m => m > 0))
+                    break;
+            }
+            TestBreeding(EB, EggLearnSet, max);
         }
     }
 }

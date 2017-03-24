@@ -391,6 +391,7 @@ namespace PKHeX.Core
                 Evolves2 = new EvolutionTree(new[] { Resources.evos_gsc }, GameVersion.GSC, PersonalTable.C, MaxSpeciesID_2);
                 //Every species in Crystal contains all the egg moves from the same species in GS
                 EggBreeding2 = new EggBreeding(2, Evolves2, PersonalTable.C, EggMovesC);
+                EggBreeding.TestBreeding(EggBreeding2, EggMovesC);
             }
             // Gen3
             {
