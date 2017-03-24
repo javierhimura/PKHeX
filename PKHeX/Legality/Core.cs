@@ -391,7 +391,7 @@ namespace PKHeX.Core
                 Evolves2 = new EvolutionTree(new[] { Resources.evos_gsc }, GameVersion.GSC, PersonalTable.C, MaxSpeciesID_2);
                 //Every species in Crystal contains all the egg moves from the same species in GS
                 EggBreeding2 = new EggBreeding(2, Evolves2, PersonalTable.C, EggMovesC);
-                EggBreeding.TestBreeding(EggBreeding2, EggMovesC);
+                EggBreeding.TestBreeding_CheckOptimal(EggBreeding2, EggMovesC);
             }
             // Gen3
             {
@@ -432,6 +432,7 @@ namespace PKHeX.Core
                     PersonalTable.E[i].AddTypeTutors(tutors[i]);
 
                 EggBreeding3 = new EggBreeding(3, Evolves3, PersonalTable.E, EggMovesRS);
+                EggBreeding.TestBreeding_CheckOptimal(EggBreeding3, EggMovesRS);
             }
             // Gen 4
             {
@@ -489,6 +490,7 @@ namespace PKHeX.Core
 
                 //Every species in HGSS contains all the egg moves from the same species in DPPt
                 EggBreeding4 = new EggBreeding(4, Evolves4, PersonalTable.HGSS, EggMovesHGSS);
+                EggBreeding.TestBreeding_CheckOptimal(EggBreeding4, EggMovesHGSS);
             }
             // Gen 5
             {
@@ -519,6 +521,7 @@ namespace PKHeX.Core
 
                 Evolves5 = new EvolutionTree(new[] { Resources.evos_g5 }, GameVersion.BW, PersonalTable.BW, MaxSpeciesID_5);
                 EggBreeding5 = new EggBreeding(5, Evolves5, PersonalTable.BW, EggMovesBW);
+                EggBreeding.TestBreeding_CheckOptimal(EggBreeding5, EggMovesBW);
             }
             // Gen 6
             {

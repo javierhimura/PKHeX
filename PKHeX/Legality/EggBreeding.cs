@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -171,7 +172,7 @@ namespace PKHeX.Core
         static StringBuilder sb = new StringBuilder();
         internal static int[] TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet, int Limit)
         {
-           int[] limits = new[] { 0, Limit, Limit, Limit, Limit };
+            int[] limits = new[] { 0, Limit, Limit, Limit, Limit };
             return TestBreeding(EB, EggLearnSet, limits);
         }
 
@@ -319,27 +320,30 @@ namespace PKHeX.Core
 
             return combinations_ok;
         }
-        internal static void TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet)
+
+        internal static void TestBreeding_CheckOptimal(EggBreeding EB, EggMoves[] EggLearnSet)
         {
-
-            int[] calc = new[] { 0, 5, 6, 6, 6 };
-            TestBreeding(EB, EggLearnSet, calc);
-
-            int[] last_ok = new[] { 0, 0, 0, 0, 0};
+            sb = new StringBuilder();
+            int[] last_ok = new[] { 0, 0, 0, 0, 0 };
             int[] max = new[] { 0, 0, 0, 0, 0 };
-            for (int i =1;i<= 10; i++)
+            for (int i = 1; i <= 10; i++)
             {
+                sb.AppendLine($"TEST CONFIGURATION {i}/{i}/{i}/{i}");
                 int[] ok = TestBreeding(EB, EggLearnSet, i);
-                for(int move =1;move <=4;move ++)
+                for (int move = 1; move <= 4; move++)
                 {
-                    if (ok[move] == last_ok[move] && max[move]==0)
+                    if (ok[move] == last_ok[move] && max[move] == 0)
                         max[move] = i - 1;
                 }
                 last_ok = ok;
                 if (max.Skip(1).All(m => m > 0))
                     break;
             }
+            sb.AppendLine($"GENERATION {EB.GenOrigin} OPTIMAL CONFIGURATION FOUND {max[1]}/{max[2]}/{max[3]}/{max[4]}");
+            sb.AppendLine("TEST OPTIMAL CONFIGURATION");
             TestBreeding(EB, EggLearnSet, max);
+            File.WriteAllText($"EggBreedingTestGen{EB.GenOrigin}.log", sb.ToString());
         }
+
     }
 }
