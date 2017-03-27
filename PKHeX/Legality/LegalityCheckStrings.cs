@@ -1,63 +1,10 @@
 ﻿// ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace PKHeX.Core
 {
-    public static class CheckStrings
+    public static class LegalityCheckStrings
     {
-        private const string splitter = " = ";
-        private static readonly Type t = typeof(CheckStrings);
-        private static string[] getProps(IEnumerable<string> input)
-        {
-            return input.Select(l => l.Substring(0, l.IndexOf(splitter, StringComparison.Ordinal))).ToArray();
-        }
-        private static IEnumerable<string> DumpStrings()
-        {
-            var props = ReflectUtil.getPropertiesStartWithPrefix(t, "V");
-            return props.Select(p => $"{p}{splitter}{ReflectUtil.GetValue(t, p).ToString()}");
-        }
-        
-        public static void setLocalization(IEnumerable<string> lines)
-        {
-            if (lines == null)
-                return;
-            foreach (var line in lines.Where(l => l != null))
-            {
-                var index = line.IndexOf(splitter, StringComparison.Ordinal);
-                if (index < 0)
-                    continue;
-                var prop = line.Substring(0, index);
-                var value = line.Substring(index + splitter.Length);
-
-                try
-                {
-                    ReflectUtil.SetValue(t, prop.ToUpper(), value);
-                }
-                catch
-                {
-                    Console.WriteLine($"Property not present: {prop} || Value written: {value}");
-                }
-            }
-        }
-        public static string[] getLocalization(string[] existingLines = null)
-        {
-            existingLines = existingLines ?? new string[0];
-            var currentLines = DumpStrings().ToArray();
-            var existing = getProps(existingLines);
-            var current = getProps(currentLines);
-            
-            var result = new string[currentLines.Length];
-            for (int i = 0; i < current.Length; i++)
-            {
-                int index = Array.IndexOf(existing, current[i]);
-                result[i] = index < 0 ? currentLines[i] : existingLines[index];
-            }
-            return result;
-        }
 
         #region General Strings
 
@@ -78,6 +25,17 @@ namespace PKHeX.Core
         /// <summary>Format text for exporting the type of Encounter that was matched for the the <see cref="PKM"/></summary>
         public static string V195 {get; set;} = "Encounter Type: {0}";
 
+        /// <summary>Severity string for <see cref="Severity.Indeterminate"/></summary>
+        public static string V500 { get; set; } = "Indeterminate";
+        /// <summary>Severity string for <see cref="Severity.Invalid"/></summary>
+        public static string V501 { get; set; } = "Invalid";
+        /// <summary>Severity string for <see cref="Severity.Fishy"/></summary>
+        public static string V502 { get; set; } = "Fishy";
+        /// <summary>Severity string for <see cref="Severity.Valid"/></summary>
+        public static string V503 { get; set; } = "Valid";
+        /// <summary>Severity string for <see cref="Severity.NotImplemented"/></summary>
+        public static string V504 { get; set; } = "Not Implemented";
+
         /// <summary>Original Trainer string used in various string formats such as Memories.</summary>
         public static string V205 { get; set; } = "OT";
         /// <summary>Handling Trainer string used in various string formats such as Memories.</summary>
@@ -90,11 +48,23 @@ namespace PKHeX.Core
         public static string V174 { get; set; } = "Learned by Move Tutor.";
         public static string V175 { get; set; } = "Special Non-Relearn Move.";
         public static string V177 { get; set; } = "Learned by Level-up.";
+        public static string V330 { get; set; } = "Learned by Level-up in generation {0}.";
+        public static string V331 { get; set; } = "Learned by TM/HM in generation {0}.";
+        public static string V332 { get; set; } = "Learned by Move Tutor in generation {0}.";
+        public static string V333 { get; set; } = "Event Egg Move.";
+        public static string V344 { get; set; } = "Inherited egg move.";
+        public static string V345 { get; set; } = "Inherited move learned by Level-up.";
+        public static string V346 { get; set; } = "Inherited tutor move.";
+        public static string V349 { get; set; } = "Inherited TM/HM move.";
 
         #endregion
 
         #region Legality Check Result Strings
 
+        public static string V250 {get; set;} = "Gender matches PID.";
+        public static string V251 {get; set;} = "PID-Gender mismatch.";
+        public static string V252 {get; set;} = "Nature matches PID.";
+        public static string V253 {get; set;} = "PID-Nature mismatch.";
         public static string V203 {get; set;} = "Genderless Pokémon should not have a gender.";
         public static string V201 {get; set;} = "Encryption Constant is not set.";
         public static string V204 {get; set;} = "Held item is unreleased.";
@@ -145,7 +115,7 @@ namespace PKHeX.Core
         public static string V31 {get; set;} = "All IVs are 0."; // Fishy
         public static string V32 {get; set;} = "All IVs are equal."; // Fishy
 
-        public static string V28 {get; set;} = "Should have at least {0} IVs {get; set;} = 31."; // Invalid
+        public static string V28 {get; set;} = "Should have at least {0} IVs = 31."; // Invalid
         public static string V29 {get; set;} = "Friend Safari captures should have at least 2 IVs = 31."; // Invalid
         public static string V30 {get; set;} = "IVs do not match Mystery Gift Data."; // Invalid
 
@@ -353,6 +323,23 @@ namespace PKHeX.Core
         public static string V327 {get; set;} = "Special ingame N's Sparkle flag should not be checked.";
         public static string V328 {get; set;} = "Version Specific evolution requires a trade to opposite version. A Handling Trainer is required.";
 
+        public static string V334 {get; set;} = "Non-tradeback egg move. Incompatible with generation 1 exclusive moves.";
+        public static string V335 {get; set;} = "Generation 1 exclusive move. Incompatible with Non-tradeback egg moves.";
+        public static string V336 {get; set;} = "Egg Move. Incompatible with event egg moves.";
+        public static string V337 {get; set;} = "Event Egg Move. Incompatible with normal egg moves.";
+        public static string V338 {get; set;} = "Defog and whirpool. One of the two moves should have been removed before transfered to generation 5.";
+        public static string V339 {get; set;} = "Generation {0} HM. Should have been removed before transfered to generation {1}.";
+        public static string V340 {get; set;} = "Not an expected egg move.";
+        public static string V341 {get; set;} = "Egg Move.Not expected in an event egg.";
+        public static string V342 {get; set;} = "Event egg move missing.";
+        public static string V343 {get; set;} = "Expected the following Moves: { 0}";
+        public static string V347 {get; set;} = "Inherited move learned by Level-up.Not expected in an event egg.";
+        public static string V348 {get; set;} = "Inherited tutor move. Not expected in an event egg.";
+        public static string V350 {get; set;} = "Inherited TM/HM move. Not expected in an event egg.";
+        public static string V351 {get; set;} = "Invalid Met Location, expected Transporter or Crown."; // Invalid
+        public static string V352 {get; set;} = "Arceus from Hall of Origin. Unreleased event.";
+        public static string V353 {get; set;} = "Non japanese Mew from Faraway Island. Unreleased event.";
+        public static string V354 {get; set;} = "Non Platinum Shaymin from Flower Paradise. Unreleased event.";
         #endregion
 
     }

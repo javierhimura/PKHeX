@@ -10,7 +10,14 @@ namespace PKHeX.Core
         internal const int MaxItemID_3 = 374;
         internal const int MaxAbilityID_3 = 77;
         internal const int MaxBallID_3 = 0xC;
-        
+
+        public static readonly int[] SplitBreed_3 =
+        {
+            // Incense
+            183, 184, // Marill
+            202, // Wobbuffet
+        };
+
         #region RS
         internal static readonly ushort[] Pouch_Items_RS = {
             13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 63, 64, 65, 66, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 78, 79, 80, 81, 83, 84, 85, 86, 93, 94, 95, 96, 97, 98, 103, 104, 106, 107, 108, 109, 110, 111, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 254, 255, 256, 257, 258
@@ -89,7 +96,7 @@ namespace PKHeX.Core
             407,424,429,430,461,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,700
         };
 
-        internal static readonly int[] FutureEvolutionsGen3_LevelUp = 
+        internal static readonly int[] FutureEvolutionsGen3_LevelUpGen4 = 
         {
             424, 461, 462, 463, 465, 469, 470, 471, 472, 473, 476
         };
@@ -202,6 +209,13 @@ namespace PKHeX.Core
               36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
               46, 47, 48, 49,
         };
+        internal static readonly EncounterStatic[] Encounter_Box =
+        {
+            new EncounterStatic { Species = 333, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{206} }, // Swablu Egg with False Swipe
+            new EncounterStatic { Species = 263, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{245} }, // Zigzagoon Egg with Extreme Speed
+            new EncounterStatic { Species = 300, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{6} }, // Skitty Egg with Pay Day
+            new EncounterStatic { Species = 172, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{57} }, // Pichu Egg with Surf
+        };
 
         internal static readonly EncounterStatic[] Encounter_RSE_Roam =
         {
@@ -251,10 +265,10 @@ namespace PKHeX.Core
             new EncounterStatic { Species = 384, Level = 70, Location = 085, }, // Rayquaza @ Sky Pillar
 
             // Event
-            new EncounterStatic { Species = 151, Level = 30, Location = 201, Version = GameVersion.E, }, // Mew @ Faraway Island
+            new EncounterStatic { Species = 151, Level = 30, Location = 201, Version = GameVersion.E, Fateful = true }, // Mew @ Faraway Island (Unreleased outside of Japan)
             new EncounterStatic { Species = 249, Level = 70, Location = 211, Version = GameVersion.E, }, // Lugia @ Navel Rock
             new EncounterStatic { Species = 250, Level = 70, Location = 211, Version = GameVersion.E, }, // Ho-Oh @ Navel Rock
-            new EncounterStatic { Species = 386, Level = 30, Location = 200, Version = GameVersion.E, Form = 3 }, // Deoxys @ Birth Island
+            new EncounterStatic { Species = 386, Level = 30, Location = 200, Version = GameVersion.E, Form = 3, Fateful = true }, // Deoxys @ Birth Island
         };
 
 
@@ -299,12 +313,12 @@ namespace PKHeX.Core
             // Event
             new EncounterStatic { Species = 249, Level = 70, Location = 174, }, // Lugia @ Navel Rock
             new EncounterStatic { Species = 250, Level = 70, Location = 174, }, // Ho-Oh @ Navel Rock
-            new EncounterStatic { Species = 386, Level = 30, Location = 187, Version = GameVersion.FR, Form = 1 }, // Deoxys @ Birth Island
-            new EncounterStatic { Species = 386, Level = 30, Location = 187, Version = GameVersion.LG, Form = 2 }, // Deoxys @ Birth Island
+            new EncounterStatic { Species = 386, Level = 30, Location = 187, Version = GameVersion.FR, Form = 1, Fateful = true }, // Deoxys @ Birth Island
+            new EncounterStatic { Species = 386, Level = 30, Location = 187, Version = GameVersion.LG, Form = 2, Fateful = true }, // Deoxys @ Birth Island
         };
 
-        internal static readonly EncounterStatic[] Encounter_RSE = Encounter_RSE_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_RSE)).Concat(Encounter_RSE_Regular).ToArray();
-        internal static readonly EncounterStatic[] Encounter_FRLG = Encounter_FRLG_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_FRLG)).Concat(Encounter_FRLG_Stationary).ToArray();
+        internal static readonly EncounterStatic[] Encounter_RSE = Encounter_RSE_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_RSE)).Concat(Encounter_RSE_Regular).Concat(Encounter_Box).ToArray();
+        internal static readonly EncounterStatic[] Encounter_FRLG = Encounter_FRLG_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_FRLG)).Concat(Encounter_FRLG_Stationary).Concat(Encounter_Box).ToArray();
 
         private static readonly int[] TradeContest_Cool =   {30, 05, 05, 05, 05, 10};
         private static readonly int[] TradeContest_Beauty = {05, 30, 05, 05, 05, 10};
@@ -339,6 +353,10 @@ namespace PKHeX.Core
         };
 
         #region AltSlots
+        internal static readonly int[] SafariZoneLocation_3 =
+        {
+            57, 136
+        };
         private static readonly EncounterArea[] SlotsRSEAlt =
         {
             // Swarm can be passed from one game to another via mixing records, that means emerald swarms can occurs in r/s and r/s swarms in emerald
@@ -480,7 +498,18 @@ namespace PKHeX.Core
                 },}
         };
         #endregion
-
+        internal static readonly int[] ValidEggMet_RSE =
+        {
+            32, //Route 117 
+            253, //Ingame egg gift
+            255 // event/pokemon box
+        };
+        internal static readonly int[] ValidEggMet_FRLG =
+        {
+            146, //Four Island
+            253, //Ingame egg gift
+            255 // event/pokemon box
+        };
         // 064 is an unused location for metor falls
         // 084 is Inside of a truck, no possible pokemon can be hatched there
         internal static readonly int[] ValidMet_RS =
