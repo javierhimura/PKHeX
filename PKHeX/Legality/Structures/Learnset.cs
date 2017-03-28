@@ -19,6 +19,53 @@ namespace PKHeX.Core
                     return Moves.Take(i).ToArray();
             return Moves;
         }
+
+        public int[] getMoves(int minlevel, int maxlevel)
+        {
+            if (minlevel == 0)
+                return getMoves(maxlevel);
+            if (maxlevel >= 100)
+                return Moves;
+            int skiplvl = 0;
+            for (int i = 0; i < Levels.Length; i++)
+            {
+                if (Levels[i] <= minlevel)
+                    skiplvl++;
+                if (Levels[i] > maxlevel)
+                    return Moves.Skip(skiplvl).Take(i).ToArray();
+            }
+            return Moves;
+        }
+
+        public IEnumerable<int> getEncounterMoves(int level)
+        {
+            if (level < 100)
+            {
+                for (int i = 0; i < Levels.Length; i++)
+                    if (Levels[i] > level)
+                    {
+                        var Mv = Moves.Take(i);
+                        return Mv.Count() <= 4 ? Mv.ToArray() : Mv.Skip(Mv.Count() - 4);
+                    }
+            }
+
+            return Moves.Length <= 4 ? Moves : Moves.Skip(Moves.Length - 4);
+        }
+
+        public int getMinMoveLevel(int level)
+        {
+            if (level < 100)
+            {
+                for (int i = 0; i < Levels.Length; i++)
+                    if (Levels[i] > level)
+                    {
+                        var Lv = Levels.Take(i);
+                        return Lv.Count() <= 4 ? 0 : Lv.Skip(Lv.Count() - 4).First();
+                    }
+            }
+
+            return Levels.Length <= 4 ? 0 :  Levels.Skip(Levels.Length - 4).First();
+        }
     }
 
     public class Learnset1 : Learnset

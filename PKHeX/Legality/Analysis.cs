@@ -11,6 +11,7 @@ namespace PKHeX.Core
         private DexLevel[][] EvoChainsAllGens;
         private readonly List<CheckResult> Parse = new List<CheckResult>();
 
+        private GBEncounterData GBData;
         private object EncounterMatch, EncounterOriginal;
         private Type EncounterType;
         private bool EncounterIsMysteryGift => EncounterType.IsSubclassOf(typeof (MysteryGift));

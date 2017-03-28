@@ -689,11 +689,11 @@ namespace PKHeX.Core
         }
         private CheckResult verifyEncounterG12()
         {
-            var obj = Legal.getEncounter12(pkm, Legal.AllowGBCartEra && pkm.Format < 3);
-            if (obj == null)
+            GBData = Legal.getEncounter12(pkm, Legal.AllowGBCartEra && pkm.Format < 3);
+            if (GBData == null)
                 return new CheckResult(Severity.Invalid, V80, CheckIdentifier.Encounter);
 
-            EncounterMatch = obj.Item1;
+            EncounterMatch = GBData.Encounter;
             if (EncounterMatch is bool)
             {
                 pkm.WasEgg = true;
@@ -2222,12 +2222,14 @@ namespace PKHeX.Core
             }
             else if (pkm.Species == 235) // Smeargle can have any move except a few
                 res = parseMovesSketch(Moves);
+            else if (pkm.Format < 3 || pkm.VC)
+                res = verifyMovesGBEra(Moves, validLevelMoves, validTMHM, validTutor, game);
             else if (pkm.WasEgg && pkm.GenNumber < 6)
                 res = verifyMovesWasEggPreRelearn(Moves, validLevelMoves, validTMHM, validTutor);
             else if (EventGiftMatch?.Count > 1) // Multiple possible Mystery Gifts matched, get the best match too
                 res = parseMovesGetGift(Moves, validLevelMoves, validTMHM, validTutor);
             else // Everything else
-                res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], game);
+                res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], new List<int>(), true, game);
 
             // Duplicate Moves Check
             verifyNoEmptyDuplicates(Moves, res);
@@ -2334,6 +2336,48 @@ namespace PKHeX.Core
             }
             return res;
         }
+        private CheckResult[] verifyMovesGBEra(int[] Moves, List<int>[] validLevelMoves, List<int>[] validTMHM, List<int>[] validTutor, GameVersion game = GameVersion.Any)
+        {
+            CheckResult[] res = new CheckResult[4];
+            if (GBData.Gen1)
+                return verifyMovesGen1Origin(GBData, Moves, validLevelMoves, validTMHM, validTutor, game);
+            
+            if (pkm.WasEgg)
+            {
+                res = verifyMovesWasEggPreRelearn(Moves, validLevelMoves, validTMHM, validTutor);
+                if (res.All(r => r.Valid))
+                    return res;
+                if (GBData.G1Data != null)
+                    res = verifyMovesGen1Origin(GBData.G1Data, Moves, validLevelMoves, validTMHM, validTutor, game);
+                return res;
+            }
+
+            // Gen 2 Non Egg
+            res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], new List<int>(), true, game);
+            return res;
+        }
+
+        private CheckResult[] verifyMovesGen1Origin(GBEncounterData G1Data, int[] Moves, List<int>[] validLevelMoves, List<int>[] validTMHM, List<int>[] validTutor, GameVersion game = GameVersion.Any)
+        {
+            CheckResult[] res = new CheckResult[4];
+            var RGBEncounterMoves = new List<int>();
+            if (game.Contains(GameVersion.R))
+            {
+                RGBEncounterMoves = Legal.getInitialMovesG1Encounter(G1Data.Species, G1Data.Level, GameVersion.R);
+                res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], RGBEncounterMoves, false, game);
+                if (res.All(r => r.Valid)) // moves is satisfactory
+                    return res;
+            }
+
+            var YEncounterMoves = Legal.getInitialMovesG1Encounter(G1Data.Species, G1Data.Level, GameVersion.Y);
+            if (YEncounterMoves.SequenceEqual(RGBEncounterMoves))
+                return res;
+
+            res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], YEncounterMoves, false, game);
+
+            return res;
+        }
+
         private CheckResult[] verifyMovesWasEggPreRelearn(int[] Moves, List<int>[] validLevelMoves, List<int>[] validTMHM, List<int>[] validTutor)
         {
             CheckResult[] res = new CheckResult[4];
@@ -2343,18 +2387,20 @@ namespace PKHeX.Core
                 if (EventGiftMatch?.Count > 1) // Multiple possible Mystery Gifts matched, get the best match too
                     res = parseMovesGetGift(Moves, validLevelMoves, validTMHM, validTutor);
                 else // Everything else
-                    res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], GameVersion.Any);
+                    res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, new int[0], new List<int>(), true, GameVersion.Any);
                 if (res.All(r => r.Valid)) // moves is satisfactory
                     return res;
             }
 
             // Some games can have different egg movepools. Have to check all situations.
+            var G1InitialMoves = new List<int>();
             GameVersion[] Games = { };
             switch (pkm.GenNumber)
             {
                 case 1:
                 case 2:
                     Games = new[] { GameVersion.GS, GameVersion.C };
+                    G1InitialMoves = Legal.getInitialMovesG1Encounter(GBData.G1Data.Species, GBData.Level, GameVersion.Any);
                     break;
                 case 3: // Generation 3 does not overwrite source game after pokemon hatched
                     Games = getBaseMovesIsEggGames();
@@ -2372,7 +2418,7 @@ namespace PKHeX.Core
                 for (int i = 0; i <= splitctr; i++)
                 {
                     var baseEggMoves = Legal.getBaseEggMoves(pkm, i, ver, 100)?.ToArray() ?? new int[0];
-                    res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, baseEggMoves, ver);
+                    res = parseMovesRegular(Moves, validLevelMoves, validTMHM, validTutor, baseEggMoves, G1InitialMoves, true, ver);
                     if (res.All(r => r.Valid)) // moves is satisfactory
                         return res;
                 }
@@ -2410,7 +2456,7 @@ namespace PKHeX.Core
             foreach (MysteryGift mg in EventGiftMatch)
             {
                 int[] SpecialMoves = mg.Moves;
-                CheckResult[] res = parseMoves(Moves, validLevelMoves, RelearnMoves, validTMHM, validTutor, SpecialMoves, new int[0], new int[0], new int[0]);
+                CheckResult[] res = parseMoves(Moves, validLevelMoves, RelearnMoves, validTMHM, validTutor, SpecialMoves, new int[0], new int[0], new int[0], new List<int>());
                 if (res.Any(r => !r.Valid))
                     continue;
 
@@ -2421,9 +2467,9 @@ namespace PKHeX.Core
             }
 
             // no Mystery Gifts matched
-            return parseMoves(Moves, validLevelMoves, RelearnMoves, validTMHM, validTutor, new int[0], new int[0], new int[0], new int[0]);
+            return parseMoves(Moves, validLevelMoves, RelearnMoves, validTMHM, validTutor, new int[0], new int[0], new int[0], new int[0], new List<int>());
         }
-        private CheckResult[] parseMovesRegular(int[] Moves, List<int>[] validLevelMoves, List<int>[] validTMHM, List<int>[] validTutor, int[] baseEggMoves, GameVersion game)
+        private CheckResult[] parseMovesRegular(int[] Moves, List<int>[] validLevelMoves, List<int>[] validTMHM, List<int>[] validTutor, int[] baseEggMoves, List<int> G1InitialMoves, bool AllowEgg, GameVersion game)
         {
             int[] EggMoves = pkm.WasEgg ? Legal.getEggMoves(pkm, game).ToArray() : new int[0];
             int[] EventEggMoves = pkm.WasEgg ? Legal.getSpecialEggMoves(pkm, game).ToArray() : new int[0];
@@ -2433,7 +2479,7 @@ namespace PKHeX.Core
                                  (EncounterMatch as EncounterTrade)?.Moves ??
                                  new int[0];
 
-            CheckResult[] res = parseMoves(Moves, validLevelMoves, RelearnMoves, validTMHM, validTutor, SpecialMoves, baseEggMoves, EggMoves, EventEggMoves);
+            CheckResult[] res = parseMoves(Moves, validLevelMoves, RelearnMoves, validTMHM, validTutor, SpecialMoves, baseEggMoves, EggMoves, EventEggMoves, G1InitialMoves);
 
             if (pkm.GenNumber < 6)
                 return res;
@@ -2444,7 +2490,7 @@ namespace PKHeX.Core
 
             return res;
         }
-        private CheckResult[] parseMoves(int[] moves, List<int>[] learn, int[] relearn, List<int>[] tmhm, List<int>[] tutor, int[] special, int[] baseegg, int[] egg, int[] eventegg)
+        private CheckResult[] parseMoves(int[] moves, List<int>[] learn, int[] relearn, List<int>[] tmhm, List<int>[] tutor, int[] special, int[] baseegg, int[] egg, int[] eventegg, List<int> G1InitialMoves)
         {
             CheckResult[] res = new CheckResult[4];
             var Gen1MovesLearned = new List<int>();
