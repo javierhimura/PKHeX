@@ -11,6 +11,8 @@ namespace PKHeX.Core
         private readonly GameVersion Game;
         private readonly PersonalTable Personal;
         private readonly int MaxSpeciesTree;
+        private readonly int Generation;
+
 
         public EvolutionTree(byte[][] data, GameVersion game, PersonalTable personal, int maxSpeciesTree)
         {
@@ -21,24 +23,31 @@ namespace PKHeX.Core
             {
                 case GameVersion.RBY:
                     Entries = EvolutionSet1.getArray(data[0], maxSpeciesTree);
+                    Generation = 1;
                     break;
                 case GameVersion.GSC:
                     Entries = EvolutionSet2.getArray(data[0], maxSpeciesTree);
+                    Generation = 2;
                     break;
                 case GameVersion.RS:
                     Entries = EvolutionSet3.getArray(data[0]);
+                    Generation = 3;
                     break;
                 case GameVersion.DP:
                     Entries = EvolutionSet4.getArray(data[0]);
+                    Generation = 4;
                     break;
                 case GameVersion.BW:
                     Entries = EvolutionSet5.getArray(data[0]);
+                    Generation = 5;
                     break;
                 case GameVersion.ORAS:
                     Entries.AddRange(data.Select(d => new EvolutionSet6(d)));
+                    Generation = 6;
                     break;
                 case GameVersion.SM:
                     Entries.AddRange(data.Select(d => new EvolutionSet7(d)));
+                    Generation = 7;
                     break;
             }
             
@@ -189,6 +198,19 @@ namespace PKHeX.Core
         {
             int maxSpeciesOrigin = Legal.getMaxSpeciesOrigin(Generation);
             return Lineage[Species].getExplicitLineage(Species, maxSpeciesOrigin);
+        }
+
+        public int[] getEggSpecies(int species)
+        {
+            if (Legal.NoHatchFromEgg.Contains(species) && (Generation != 4 || species == 490))
+                return new int[0];
+            bool splitBreed = Legal.getSplitBreedGeneration(Generation).Contains(species);
+            var preevolutions = getValidPreEvolutions(species, Generation);
+            if (!splitBreed)
+                return new[] { preevolutions.Last().Species };
+            if (preevolutions.Count() == 3)
+                return preevolutions.Skip(1).Select(p=>p.Species).ToArray();
+            return preevolutions.Select(p => p.Species).ToArray();
         }
     }
 

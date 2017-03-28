@@ -28,7 +28,7 @@ namespace PKHeX.Core
         private static readonly EvolutionTree Evolves2;
         private static readonly EncounterArea[] SlotsGSC, SlotsGS, SlotsC;
         private static readonly EncounterStatic[] StaticGSC, StaticGS, StaticC;
-        private static readonly EggBreeding EggBreeding2;
+        private static readonly EggBreedingExtractor EggBreeding2;
 
         // Gen 3
         private static readonly Learnset[] LevelUpE = Learnset6.getArray(Data.unpackMini(Resources.lvlmove_e, "em"));
@@ -39,7 +39,7 @@ namespace PKHeX.Core
         private static readonly EvolutionTree Evolves3;
         private static readonly EncounterArea[] SlotsR, SlotsS, SlotsE, SlotsFR, SlotsLG;
         private static readonly EncounterStatic[] StaticR, StaticS, StaticE, StaticFR, StaticLG;
-        private static readonly EggBreeding EggBreeding3;
+        private static readonly EggBreedingExtractor EggBreeding3;
 
         // Gen 4
         private static readonly Learnset[] LevelUpDP = Learnset6.getArray(Data.unpackMini(Resources.lvlmove_dp, "dp"));
@@ -50,7 +50,7 @@ namespace PKHeX.Core
         private static readonly EvolutionTree Evolves4;
         private static readonly EncounterArea[] SlotsD, SlotsP, SlotsPt, SlotsHG, SlotsSS;
         private static readonly EncounterStatic[] StaticD, StaticP, StaticPt, StaticHG, StaticSS;
-        private static readonly EggBreeding EggBreeding4;
+        private static readonly EggBreedingExtractor EggBreeding4;
 
         // Gen 5
         private static readonly Learnset[] LevelUpBW = Learnset6.getArray(Data.unpackMini(Resources.lvlmove_bw, "51"));
@@ -59,7 +59,7 @@ namespace PKHeX.Core
         private static readonly EvolutionTree Evolves5;
         private static readonly EncounterArea[] SlotsB, SlotsW, SlotsB2, SlotsW2;
         private static readonly EncounterStatic[] StaticB, StaticW, StaticB2, StaticW2;
-        private static readonly EggBreeding EggBreeding5;
+        private static readonly EggBreedingExtractor EggBreeding5;
 
         // Gen 6
         private static readonly EggMoves[] EggMovesXY = EggMoves6.getArray(Data.unpackMini(Resources.eggmove_xy, "xy"));
@@ -446,8 +446,8 @@ namespace PKHeX.Core
                 MarkG2Slots(ref SlotsGSC);
                 Evolves2 = new EvolutionTree(new[] { Resources.evos_gsc }, GameVersion.GSC, PersonalTable.C, MaxSpeciesID_2);
                 //Every species in Crystal contains all the egg moves from the same species in GS
-                EggBreeding2 = new EggBreeding(2, Evolves2, PersonalTable.C, EggMovesC);
-                EggBreeding.TestBreeding_CheckOptimal(EggBreeding2, EggMovesC);
+                EggBreeding2 = new EggBreedingExtractor(2, Evolves2, PersonalTable.C, EggMovesC);
+                //EggBreeding.TestBreeding_CheckOptimal(EggBreeding2, EggMovesC);
             }
             // Gen3
             {
@@ -492,8 +492,8 @@ namespace PKHeX.Core
                 for (int i = 0; i <= MaxSpeciesID_3; i++)
                     PersonalTable.E[i].AddTypeTutors(tutors[i]);
 
-                EggBreeding3 = new EggBreeding(3, Evolves3, PersonalTable.E, EggMovesRS);
-                EggBreeding.TestBreeding_CheckOptimal(EggBreeding3, EggMovesRS);
+                EggBreeding3 = new EggBreedingExtractor(3, Evolves3, PersonalTable.E, EggMovesRS);
+                //EggBreeding.TestBreeding_CheckOptimal(EggBreeding3, EggMovesRS);
             }
             // Gen 4
             {
@@ -559,8 +559,8 @@ namespace PKHeX.Core
                     PersonalTable.HGSS[i].AddTypeTutors(tutors[i]);
 
                 //Every species in HGSS contains all the egg moves from the same species in DPPt
-                EggBreeding4 = new EggBreeding(4, Evolves4, PersonalTable.HGSS, EggMovesHGSS);
-                EggBreeding.TestBreeding_CheckOptimal(EggBreeding4, EggMovesHGSS);
+                EggBreeding4 = new EggBreedingExtractor(4, Evolves4, PersonalTable.HGSS, EggMovesHGSS);
+                ///EggBreeding.TestBreeding_CheckOptimal(EggBreeding4, EggMovesHGSS);
             }
             // Gen 5
             {
@@ -592,8 +592,8 @@ namespace PKHeX.Core
                 SlotsW2 = addExtraTableSlots(W2Slots, SlotsW2_Swarm, SlotsW2_HiddenGrotto);
 
                 Evolves5 = new EvolutionTree(new[] { Resources.evos_g5 }, GameVersion.BW, PersonalTable.BW, MaxSpeciesID_5);
-                EggBreeding5 = new EggBreeding(5, Evolves5, PersonalTable.BW, EggMovesBW);
-                EggBreeding.TestBreeding_CheckOptimal(EggBreeding5, EggMovesBW);
+                EggBreeding5 = new EggBreedingExtractor(5, Evolves5, PersonalTable.BW, EggMovesBW);
+                //EggBreeding.TestBreeding_CheckOptimal(EggBreeding5, EggMovesBW);
             }
             // Gen 6
             {

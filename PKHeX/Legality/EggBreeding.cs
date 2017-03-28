@@ -1,50 +1,181 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PKHeX.Core
 {
-    internal class EggChain
+    internal class EggChainBreeding
     {
-        internal int Species;
-        internal IEnumerable<int> Moves;
+        internal EggChainBreeding(int chain)
+        {
+            Chain = chain;
+            ValidEggMoves1 = new List<int>();
+            ValidEggMoves2 = new List<int[]>();
+            ValidEggMoves3 = new List<int[]>();
+            ValidEggMoves4 = new List<int[]>();
+        }
+
+        internal int Chain;
+        internal List<int> ValidEggMoves1;
+        internal List<int[]> ValidEggMoves2;
+        internal List<int[]> ValidEggMoves3;
+        internal List<int[]> ValidEggMoves4;
+        internal bool IsEmpty => ValidEggMoves1?.Count == 0 && ValidEggMoves2?.Count == 0 && ValidEggMoves3?.Count == 0 && ValidEggMoves4?.Count == 0;
+
+        internal uint GetLenght()
+        {
+            return (uint)(2 /* Chain */ + ValidEggMoves1.Count * 2 + ValidEggMoves2.Count * 4 + ValidEggMoves3.Count * 6 + ValidEggMoves4.Count * 8);
+        }
     }
 
     internal class EggBreeding
     {
+        internal EggBreeding(int maxChains)
+        {
+            EggChains = new EggChainBreeding[maxChains];
+            for(int i=0;i<maxChains;i++)
+            {
+                EggChains[i] = new EggChainBreeding(i+1);
+            }
+        }
+
+        internal int TotalEggMoves;
+        internal bool IsEmpty => EggChains?.All(n => n.IsEmpty) ?? true;
+        internal int LastChain => IsEmpty ? 0 : EggChains.Where(n => !n.IsEmpty).Select((n, i) => i).Last() + 1;
+        internal EggChainBreeding[] EggChains;
+        internal int TotalCombinations2 => TotalEggMoves * (TotalEggMoves - 1);
+        internal int TotalCombinations3 => TotalCombinations2 * (TotalEggMoves - 2);
+        internal int TotalCombinations4 => TotalCombinations3 * (TotalEggMoves - 3);
+        internal bool AllMovesValid => EggChains.Sum(c => c?.ValidEggMoves1.Count) == TotalEggMoves;
+        internal bool AllCombinations2Valid => EggChains.Sum(c => c?.ValidEggMoves2.Count) == TotalCombinations2;
+        internal bool AllCombinations3Valid => EggChains.Sum(c => c?.ValidEggMoves3.Count) == TotalCombinations3;
+        internal bool AllCombinations4Valid => EggChains.Sum(c => c?.ValidEggMoves4.Count) == TotalCombinations4;
+
+        internal bool IsValidEggMove(int move)
+        {
+            return AllMovesValid || EggChains.Any(c => c?.ValidEggMoves1.Any(m => m == move) ?? false);
+        }
+
+        internal bool IsValidEggMove(int move, int chain)
+        {
+            return AllMovesValid || EggChains.Take(chain + 1).Any(c => c?.ValidEggMoves1.Any(m => m == move) ?? false);
+        }
+
+        internal bool IsValidEggMoveCombination(IEnumerable<int> move, int chain)
+        {
+            var order = move.OrderBy(mv => mv);
+            switch (order.Count())
+            {
+                case 1: return IsValidEggMove(order.First(), chain);
+                case 2: return AllCombinations2Valid || EggChains.Take(chain + 1).Any(c => c.ValidEggMoves2.Any(m => m.SequenceEqual(order)));
+                case 3: return AllCombinations3Valid || EggChains.Take(chain + 1).Any(c => c.ValidEggMoves3.Any(m => m.SequenceEqual(order)));
+                case 4: return AllCombinations4Valid || EggChains.Take(chain + 1).Any(c => c.ValidEggMoves4.Any(m => m.SequenceEqual(order)));
+            }
+            return false;
+        }
+
+        internal bool IsValidEggMoveCombination(IEnumerable<int> move)
+        {
+            var order = move.OrderBy(mv => mv);
+            switch (order.Count())
+            {
+                case 1: return IsValidEggMove(order.First());
+                case 2: return AllCombinations2Valid || EggChains.Any(c => c.ValidEggMoves2.Any(m => m.SequenceEqual(order)));
+                case 3: return AllCombinations3Valid || EggChains.Any(c => c.ValidEggMoves3.Any(m => m.SequenceEqual(order)));
+                case 4: return AllCombinations4Valid || EggChains.Any(c => c.ValidEggMoves4.Any(m => m.SequenceEqual(order)));
+            }
+            return false;
+        }
+
+        internal static byte[] PackEggBreedingsData(string Header, EggBreeding[] InheritanceData)
+        {
+            using (var s = new MemoryStream())
+            using (var bw = new BinaryWriter(s))
+            {
+                bw.Write(Header.ToCharArray());
+                bw.Write((ushort)InheritanceData.Length);
+                uint offset = (uint)(4 + (InheritanceData.Length * 4) + 4);
+                for (int i = 0; i < InheritanceData.Length; i++)
+                {
+                    bw.Write(offset);
+                    offset += InheritanceData[i].GetLenght();
+                }
+                bw.Write(offset);
+                for (int i = 0; i < InheritanceData.Length; i++)
+                {
+                    bw.Write(InheritanceData[i].PackEggBreedingsData());
+                }
+                return s.ToArray();
+            }
+        }
+
+        private byte[] PackEggBreedingsData()
+        {
+            using (var s = new MemoryStream())
+            using (var bw = new BinaryWriter(s))
+            {
+                bw.Write((ushort)TotalEggMoves);
+                //bw.Write((ushort)LastChain);
+                bw.Write((ushort)EggChains.Length);
+                //for (int i = 0; i < LastChain ; i++)
+                for (int i = 0; i < EggChains.Length; i++)
+                {
+                    bw.Write((ushort)EggChains[i].Chain);
+                    bw.Write((ushort)EggChains[i].ValidEggMoves1.Count);
+                    bw.Write((ushort)EggChains[i].ValidEggMoves2.Count);
+                    bw.Write((ushort)EggChains[i].ValidEggMoves3.Count);
+                    bw.Write((ushort)EggChains[i].ValidEggMoves4.Count);
+                    for(int j = 0; j < EggChains[i].ValidEggMoves1.Count; j++)
+                        bw.Write((ushort)EggChains[i].ValidEggMoves1[j]);
+                    for (int j = 0; j < EggChains[i].ValidEggMoves2.Count; j++)
+                    {
+                        bw.Write((ushort)EggChains[i].ValidEggMoves2[j][0]);
+                        bw.Write((ushort)EggChains[i].ValidEggMoves2[j][1]);
+                    }
+                    for (int j = 0; j < EggChains[i].ValidEggMoves3.Count; j++)
+                    {
+                        bw.Write((ushort)EggChains[i].ValidEggMoves3[j][0]);
+                        bw.Write((ushort)EggChains[i].ValidEggMoves3[j][1]);
+                        bw.Write((ushort)EggChains[i].ValidEggMoves3[j][2]);
+                    }
+                    for (int j = 0; j < EggChains[i].ValidEggMoves4.Count; j++)
+                    {
+                        bw.Write((ushort)EggChains[i].ValidEggMoves4[j][0]);
+                        bw.Write((ushort)EggChains[i].ValidEggMoves4[j][1]);
+                        bw.Write((ushort)EggChains[i].ValidEggMoves4[j][2]);
+                        bw.Write((ushort)EggChains[i].ValidEggMoves4[j][3]);
+                    }
+                }
+                return s.ToArray();
+            }
+        }
+
+        private uint GetLenght()
+        {
+            return (uint)(4 /*TotalEggMoves,LastChain */ + EggChains.Sum(n => n.GetLenght()));
+        }
+    }
+
+    internal class EggBreedingExtractor
+    {
         protected int GenOrigin;
         protected int GenFormat;
-        protected List<int> PotentialFathers;
         protected List<int>[] PotentialFathersEggGroup;
-        protected int[][] BreedingMoves;
+        protected int[][] DirectBreedingMoves;
         protected int[][] ChainBreedingMoves;
-        protected int[][] EggBreedingMoves;
-        protected int[] EggMoves;
+        protected int[] TotalEggMoves;
         protected PersonalTable Personal;
         protected EvolutionTree Evolves;
-        protected int[] MaxDepth = { 0, 7 , 7, 7, 7 };
-        // protected int[] MaxDepth = { 0, 8, 8, 8, 8 };
+        protected EggBreeding[] InheritData;
+        private const int maxAllowChains = 20;
 
-        internal EggBreeding(int gen, EvolutionTree Evos, PersonalTable Perso, EggMoves[] EggLearnSet)
+        private void GeneratePotentialFathers(int maxSpecies)
         {
-            GenOrigin = gen;
-            GenFormat = gen;
-            Evolves = Evos;
-            PotentialFathers = new List<int>();
             PotentialFathersEggGroup = new List<int>[15];
             for (int i = 0; i < 15; i++)
             {
                 PotentialFathersEggGroup[i] = new List<int>();
             }
-            Personal = Perso;
-            var maxSpecies = Legal.getMaxSpeciesOrigin(GenOrigin);
-            BreedingMoves = new int[maxSpecies][];
-            EggBreedingMoves = new int[maxSpecies][];
-            ChainBreedingMoves = new int[maxSpecies][];
-            EggMoves = EggLearnSet.SelectMany(e => e.Moves).Distinct().ToArray();
             for (int i = 1; i < maxSpecies; i++)
             {
                 // Exclude female only,no gender and undiscover egg group species
@@ -53,49 +184,220 @@ namespace PKHeX.Core
                     continue;
 
                 // Moves that the father pokemon can inherit to eggs that are not from his egg moves, these moves can all be breed without chains
-                BreedingMoves[i] = Legal.getCanBreedMove(i, GenOrigin, GenFormat, EggMoves).ToArray();
+                DirectBreedingMoves[i] = Legal.getCanBreedMove(i, GenOrigin, GenFormat, TotalEggMoves).ToArray();
 
                 // Set of moves that the father can inherit to eggs but are exclusive from his egg moves, that means a chain egg happens, the chain should be analyze
-                var LearnEggMoves = Legal.getCanBreedChainEggMoves(i, GenOrigin, GenFormat, EggMoves).ToArray();
-                EggBreedingMoves[i] = LearnEggMoves.Except(BreedingMoves[i]).Distinct().ToArray();
+                var LearnEggMoves = Legal.getCanBreedChainEggMoves(i, GenOrigin, GenFormat, TotalEggMoves).ToArray();
+                
                 // A union of egg moves and not egg moves, when chains happens not all moves are egg moves in all the chain
-                ChainBreedingMoves[i] = EggBreedingMoves[i].Concat(BreedingMoves[i]).ToArray();
+                ChainBreedingMoves[i] = LearnEggMoves.Concat(DirectBreedingMoves[i]).ToArray();
 
                 // Create list of potential fathers and also another list of potential fathers by egg group
-                PotentialFathers.Add(i);
                 PotentialFathersEggGroup[Personal[i].EggGroups[0]].Add(i);
                 if (Personal[i].EggGroups[0] != Personal[i].EggGroups[1])
                     PotentialFathersEggGroup[Personal[i].EggGroups[1]].Add(i);
             }
+        }
 
-            foreach (int father in PotentialFathers)
+        private void GenerateValidNonChainEggMoves(int maxSpecies,EggMoves[] EggLearnSet)
+        {
+            InheritData = new EggBreeding[maxSpecies + 1];
+            InheritData[0] = new EggBreeding(maxAllowChains);
+
+            for (int i = 1; i <= maxSpecies; i++)
             {
-                // Moves that the father pokemon can inherit to eggs that are not from his egg moves, these moves can all be breed without chains
-                BreedingMoves[father] = Legal.getCanBreedMove(father, GenOrigin, GenFormat, EggMoves).ToArray();
-                // Set of moves that the father can inherit to eggs but are exclusive from his egg moves, that means a chain egg happens, the chain should be analyze
-                var LearnEggMoves = Legal.getCanBreedChainEggMoves(father, GenOrigin, GenFormat, EggMoves).ToArray();
-                EggBreedingMoves[father] = LearnEggMoves.Except(BreedingMoves[father]).Distinct().ToArray();
-                // A union of egg moves and not egg moves, when chains happens not all moves are egg moves in all the chain
-                ChainBreedingMoves[father] = EggBreedingMoves[father].Concat(BreedingMoves[father]).ToArray();
+                InheritData[i] = new EggBreeding(maxAllowChains);
+                InheritData[i].TotalEggMoves = EggLearnSet[i].Moves.Length;
+                if (Legal.NoHatchFromEgg.Contains(i) || !EggLearnSet[i].Moves.Any())
+                    continue;
+                var egggroups = getEggBreedingGroups(i);
+                IEnumerable<int> FatherSpecies = PotentialFathersEggGroup[egggroups[0]].Union(PotentialFathersEggGroup[egggroups[1]]).Distinct();
+                var OrderedMoves = EggLearnSet[i].Moves.OrderBy(m => m).ToArray();
+
+                for (int move1 = 0; move1 < OrderedMoves.Length; move1++)
+                {
+                    if (CanInheritMovesNoChain(FatherSpecies, OrderedMoves[move1], 0, 0, 0))
+                        InheritData[i].EggChains[0].ValidEggMoves1.Add(EggLearnSet[i].Moves[move1]);
+                    else
+                        continue;
+                    for (int move2 = move1 + 1; move2 < OrderedMoves.Length; move2++)
+                    {
+                        if (CanInheritMovesNoChain(FatherSpecies, OrderedMoves[move1], OrderedMoves[move2], 0, 0))
+                            InheritData[i].EggChains[0].ValidEggMoves2.Add(new[] { EggLearnSet[i].Moves[move1], OrderedMoves[move2] });
+                        else
+                            continue;
+                        for (int move3 = move2 + 1; move3 < OrderedMoves.Length; move3++)
+                        {
+                            if (CanInheritMovesNoChain(FatherSpecies, OrderedMoves[move1], OrderedMoves[move2], OrderedMoves[move3], 0))
+                                InheritData[i].EggChains[0].ValidEggMoves3.Add(new[] { EggLearnSet[i].Moves[move1], OrderedMoves[move2], OrderedMoves[move3] });
+                            else
+                                continue;
+                            for (int move4 = move3 + 1; move4 < OrderedMoves.Length; move4++)
+                            {
+                                if (CanInheritMovesNoChain(FatherSpecies, OrderedMoves[move1], OrderedMoves[move2], OrderedMoves[move3], OrderedMoves[move4]))
+                                    InheritData[i].EggChains[0].ValidEggMoves4.Add(new[] { EggLearnSet[i].Moves[move1], OrderedMoves[move2], OrderedMoves[move3], OrderedMoves[move4] });
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        // Check if there is a father species that can learn of the eggmoves for the given species 
-        // without using egg moves in the father species, that means without using egg chains
-        // If the father exits that means the combination of legal and eggmoves is legal
-        internal bool HaveNonChainFather(int species, IEnumerable<int> eggmoves)
+        private void GenerateValidChainsEggMoves(int maxSpecies, EggMoves[] EggLearnSet)
         {
-            IEnumerable<int> fathers = getCompatibleFathers(species, null);
-            foreach (int father in fathers)
+            for (int chain = 1; chain < maxAllowChains; chain++)
             {
-                if (eggmoves.All(value => BreedingMoves[father].Contains(value)))
+                var validdatafound = 0;
+                for (int i = 1; i <= maxSpecies; i++)
+                {
+                    if (Legal.NoHatchFromEgg.Contains(i) || !EggLearnSet[i].Moves.Any())
+                        continue;
+
+                    var egggroups = getEggBreedingGroups(i);
+                    var FatherSpecies = PotentialFathersEggGroup[egggroups[0]].Union(PotentialFathersEggGroup[egggroups[1]]).Distinct();
+                    var OrderedMoves = EggLearnSet[i].Moves.OrderBy(m => m).ToArray();
+                    var AllMovesValid = InheritData[i].AllMovesValid;
+                    var AllCombinations2Valid = InheritData[i].AllCombinations2Valid;
+                    var AllCombinations3Valid = InheritData[i].AllCombinations3Valid;
+                    var AllCombinations4Valid = InheritData[i].AllCombinations4Valid;
+
+                    for (int move1 = 0; move1 < OrderedMoves.Length; move1++)
+                    {
+                        var move = EggLearnSet[i].Moves[move1];
+                        if (!AllMovesValid && !InheritData[i].IsValidEggMove(move))
+                        {
+                            if (CanInheritMoveChain(FatherSpecies, chain - 1, move))
+                            {
+                                InheritData[i].EggChains[chain].ValidEggMoves1.Add(move);
+                                validdatafound++;
+                            }
+                            else
+                                continue;
+                        }
+
+                        for (int move2 = move1 + 1; move2 < OrderedMoves.Length; move2++)
+                        {
+                            var combination2 = (new[] { EggLearnSet[i].Moves[move1], EggLearnSet[i].Moves[move2] }).OrderBy(m => m);
+                            if (!AllCombinations2Valid && !InheritData[i].IsValidEggMoveCombination(combination2))
+                            {
+                                if (CanInheritMovesChain(FatherSpecies, chain - 1, combination2))
+                                {
+                                    InheritData[i].EggChains[chain].ValidEggMoves2.Add(combination2.ToArray());
+                                    validdatafound++;
+                                }
+                                else
+                                    continue;
+                            }
+
+                            for (int move3 = move2 + 1; move3 < OrderedMoves.Length; move3++)
+                            {
+                                var combination3 = (new[] { EggLearnSet[i].Moves[move1], EggLearnSet[i].Moves[move2], EggLearnSet[i].Moves[move3] }).OrderBy(m => m);
+                                if (!AllCombinations3Valid && !InheritData[i].IsValidEggMoveCombination(combination3))
+                                {
+                                    if (CanInheritMovesChain(FatherSpecies, chain - 1, combination3))
+                                    {
+                                        InheritData[i].EggChains[chain].ValidEggMoves3.Add(combination3.ToArray());
+                                        validdatafound++;
+                                    }
+                                    else
+                                        continue;
+                                }
+                                for (int move4 = move3 + 1; move4 < OrderedMoves.Length; move4++)
+                                {
+                                    var combination4 = (new[] { EggLearnSet[i].Moves[move1], EggLearnSet[i].Moves[move2], EggLearnSet[i].Moves[move3], EggLearnSet[i].Moves[move4] }).OrderBy(m => m);
+                                    if (!AllCombinations4Valid && !InheritData[i].IsValidEggMoveCombination(combination4))
+                                    {
+                                        if (CanInheritMovesChain(FatherSpecies, chain - 1, combination4))
+                                        {
+                                            InheritData[i].EggChains[chain].ValidEggMoves4.Add(combination4.ToArray());
+                                            validdatafound++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (validdatafound == 0)
+                    break;
+            }
+        }
+
+        internal EggBreedingExtractor(int gen, EvolutionTree Evos, PersonalTable Perso, EggMoves[] EggLearnSet)
+        {
+            var maxSpecies = Legal.getMaxSpeciesOrigin(GenOrigin);
+            GenOrigin = gen;
+            GenFormat = gen;
+            Evolves = Evos;
+
+            Personal = Perso;
+            DirectBreedingMoves = new int[maxSpecies+1][];
+            ChainBreedingMoves = new int[maxSpecies+1][];
+            TotalEggMoves = EggLearnSet.SelectMany(e => e.Moves).Distinct().ToArray();
+
+            GeneratePotentialFathers(maxSpecies);
+            GenerateValidNonChainEggMoves(maxSpecies, EggLearnSet);
+            GenerateValidChainsEggMoves(maxSpecies, EggLearnSet);
+
+            byte[] BFile = EggBreeding.PackEggBreedingsData($"G{GenOrigin}", InheritData);
+            File.WriteAllBytes($"EggBreeding_g{GenOrigin}.pkl", BFile);
+        }
+
+        private bool CanInheritMovesNoChain(IEnumerable<int> FatherSpecies, int move1, int move2, int move3, int move4)
+        {
+            foreach (int father in FatherSpecies)
+            {
+                if (CanLearnBreedingMoves(father, move1, move2, move3, move4))
                     return true;
             }
             return false;
         }
 
+        private bool CanInheritMovesChain(IEnumerable<int> FatherSpecies, int chain, IEnumerable<int> eggmoves)
+        {
+            foreach (int father in FatherSpecies)
+            {
+                foreach (int fatheregg in Evolves.getEggSpecies(father))
+                {
+                    if (eggmoves.All(value => ChainBreedingMoves[father].Any(c => c == value)))
+                    {
+                        var chainmoves = eggmoves.Except(DirectBreedingMoves[father]);
+                        if (InheritData[fatheregg].IsValidEggMoveCombination(chainmoves, chain))
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool CanInheritMoveChain(IEnumerable<int> FatherSpecies, int chain, int eggmove)
+        {
+            foreach (int father in FatherSpecies)
+            {
+                foreach (int fatheregg in Evolves.getEggSpecies(father))
+                {
+                    if (InheritData[fatheregg].IsValidEggMove(eggmove, chain))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private bool CanLearnBreedingMoves(int species, int move1, int move2, int move3, int move4)
+        {
+            bool valid = false;
+            valid = DirectBreedingMoves[species].Any(b => b == move1);
+            if (valid && move2 != 0 )
+                valid = DirectBreedingMoves[species].Any(b => b == move2);
+            if (valid && move3 != 0)
+                valid = DirectBreedingMoves[species].Any(b => b == move3);
+            if (valid && move4 != 0)
+                valid = DirectBreedingMoves[species].Any(b => b == move4);
+            return valid;
+        }
+
         // Return the egg group of the species or the egg group of the first evolution for baby species (pichu -> pikachu)
-        internal int[] getEggBreedingGroups(int species)
+        private int[] getEggBreedingGroups(int species)
         {
             if (Personal[species].EggGroups.Any(eg => eg == 15))
             {
@@ -103,247 +405,5 @@ namespace PKHeX.Core
             }
             return Personal[species].EggGroups;
         }
-        // Return species that can be father of the given species
-        internal IEnumerable<int> getCompatibleFathers(int species)
-        {
-            return getCompatibleFathers(species, null);
-        }
-        // Return species that can be father of the given species, excluding species already checked in the chain analyzed
-        internal IEnumerable<int> getCompatibleFathers(int species, IEnumerable<int> excludedfathers)
-        {
-            var eggGroup = getEggBreedingGroups(species);
-            IEnumerable<int> fathers = PotentialFathersEggGroup.Where((t, i) => eggGroup.Any(g => g == i)).SelectMany(f => f).Distinct();
-            if(excludedfathers!=null)
-                fathers = fathers.Except(excludedfathers);
-            return fathers;
-        }
-
-        // Return species that can be father of the species with the egg moves combination throught egg chain
-        // and the eggmoves that are also learned as egg moves by the father
-        // The legallity of father species and father egg moves should be analyzed recursively
-        internal IEnumerable<EggChain> getEggChainCompatibleFathers(int species, IEnumerable<int> eggmoves, IEnumerable<int> fathers)
-        {
-            var getChainEggFathers = new List<EggChain>();
-            foreach (int father in fathers)
-            {
-                if (eggmoves.All(value => ChainBreedingMoves[father].Contains(value)))
-                {
-                    var chainmoves = eggmoves.Except(BreedingMoves[father]);
-                    getChainEggFathers.Add(new EggChain() { Species = father, Moves = chainmoves });
-                }
-            }
-            return getChainEggFathers;
-        }
-
-        internal bool ValidEggMoves(int species, IEnumerable<int> eggmoves, out int depth_found)
-        {
-            return ValidEggMoves(species, eggmoves, new List<int>(), 1, MaxDepth[eggmoves.Count()], out depth_found);
-        }
-
-        // Check if a combination of species and eggmoves is legal
-        internal virtual bool ValidEggMoves(int species, IEnumerable<int> eggmoves, IEnumerable<int> PrevExcludedFathers, int current_depth, int max_depth, out int depth_found)
-        {
-            depth_found = -1;
-            //If there is one father that learn all the eggmoves 
-            // without having itself any of these moves as egg moves then the combination is legal
-            if (HaveNonChainFather(species, eggmoves))
-            {
-                depth_found = current_depth;
-                return true;
-            }
-            if (current_depth >= max_depth)
-                return false;
-
-            // If there is no father without chains check potential father that inherit the moves in egg chains
-            var fathers = getCompatibleFathers(species, PrevExcludedFathers);
-            var Chains = getEggChainCompatibleFathers(species, eggmoves, fathers);
-            foreach (EggChain Chain in Chains)
-            {
-                // For every potential father check the legallity of father species and moves that the father learns as egg move
-                // The current species if added to a exclusion list to avoid the aplicattion to enter into egg chains loops
-                IEnumerable<int> ExcludedFathers = PrevExcludedFathers.Concat(new List<int> { species });
-                if (ValidEggMoves(Chain.Species, Chain.Moves, ExcludedFathers, current_depth+1, max_depth, out depth_found))
-                    return true;
-            }
-
-            return false;
-        }
-
-        static StringBuilder sb = new StringBuilder();
-        internal static int[] TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet, int Limit)
-        {
-            int[] limits = new[] { 0, Limit, Limit, Limit, Limit };
-            return TestBreeding(EB, EggLearnSet, limits);
-        }
-
-        internal static int[] TestBreeding(EggBreeding EB, EggMoves[] EggLearnSet, int[] Limit)
-        {
-            int speciesegg = 0;
-            int[] combinations = new [] { 0, 0, 0, 0, 0 };
-            int[] combinations_ok = new [] { 0, 0, 0, 0, 0 };
-            int[] combinations_ko = new [] { 0, 0, 0, 0, 0 };
-            int[] max_depth = new [] { 0, 0, 0, 0, 0 };
-            EB.MaxDepth = Limit;
-            List<int> SpeciesCheck = new List<int>();
-            DateTime[] Durations = new DateTime[5];
-            DateTime[] Starts = new DateTime[5];
-            DateTime[] Ends = new DateTime[5];
-
-            for (int species = 1; species <= Legal.getMaxSpeciesOrigin(EB.GenOrigin); species++)
-            {
-                if (Legal.NoHatchFromEgg.Contains(species))
-                    continue;
-                if (EggLearnSet[species].Moves.Length == 0)
-                    continue;
-                //Check only species that can hatch from an egg, not include evolved species of species hatched
-                speciesegg++;
-                SpeciesCheck.Add(species);
-            }
-
-            int depth = 0;
-            Starts[0] = Starts[1] = DateTime.Now;
-            
-            foreach (int species in SpeciesCheck)
-            {
-                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
-                {
-                    depth = 0;
-                    bool Move1Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1] }, out depth);
-                    combinations[1]++;
-                    if (Move1Ok) combinations_ok[1]++; else combinations_ko[1]++;
-                    max_depth[1] = Math.Max(depth, max_depth[1]);
-                }
-            }
-            Ends[1] = DateTime.Now;
-
-            Starts[2] = DateTime.Now;
-            foreach (int species in SpeciesCheck)
-            {
-                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
-                {
-                    for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
-                    {
-                        depth = 0;
-                        bool Move2Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1], EggLearnSet[species].Moves[move2] }, out depth);
-                        combinations[2]++;
-                        if (Move2Ok) combinations_ok[2]++; else combinations_ko[2]++;
-                        max_depth[2] = Math.Max(depth, max_depth[2]);
-                    }
-                }
-            }
-            Ends[2] = DateTime.Now;
-
-            Starts[3] = DateTime.Now;
-            foreach (int species in SpeciesCheck)
-            {
-                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
-                {
-                    for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
-                    {
-                        for (int move3 = move2 + 1; move3 < EggLearnSet[species].Moves.Length; move3++)
-                        {
-                            depth = 0;
-                            bool Move3Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1], EggLearnSet[species].Moves[move2], EggLearnSet[species].Moves[move3] }, out depth);
-                            combinations[3]++;
-                            max_depth[3] = Math.Max(depth, max_depth[3]);
-                            if (Move3Ok) combinations_ok[3]++; else combinations_ko[3]++;
-                        }
-                    }
-                }
-            }
-            Ends[3] = DateTime.Now;
-
-            Starts[4] = DateTime.Now;
-            foreach (int species in SpeciesCheck)
-            {
-                for (int move1 = 0; move1 < EggLearnSet[species].Moves.Length; move1++)
-                {
-                    for (int move2 = move1 + 1; move2 < EggLearnSet[species].Moves.Length; move2++)
-                    {
-                        for (int move3 = move2 + 1; move3 < EggLearnSet[species].Moves.Length; move3++)
-                        {
-                            for (int move4 = move3 + 1; move4 < EggLearnSet[species].Moves.Length; move4++)
-                            {
-                                depth = 0;
-                                bool Move4Ok = EB.ValidEggMoves(species, new int[] { EggLearnSet[species].Moves[move1], EggLearnSet[species].Moves[move2], EggLearnSet[species].Moves[move3], EggLearnSet[species].Moves[move4] }, out depth);
-                                combinations[4]++;
-                                if (Move4Ok) combinations_ok[4]++; else combinations_ko[4]++;
-                                max_depth[4] = Math.Max(depth, max_depth[4]);
-                            }
-                        }
-                    }
-                }
-            }
-            Ends[4] = Ends[0] = DateTime.Now;
-            combinations[0] = combinations.Sum();
-            combinations_ok[0] = combinations_ok.Sum();
-            combinations_ko[0] = combinations_ko.Sum();
-
-            TimeSpan[] Diff = new[]
-            {
-                Ends[0] -Starts[0],
-                Ends[1] -Starts[1],
-                Ends[2] -Starts[2],
-                Ends[3] -Starts[3],
-                Ends[4] -Starts[4]
-            };
-
-            TimeSpan[] Avg = new[]
-            {
-                new TimeSpan(Diff[0].Ticks / combinations[0]),
-                new TimeSpan(Diff[1].Ticks / combinations[1]),
-                new TimeSpan(Diff[2].Ticks / combinations[2]),
-                new TimeSpan(Diff[3].Ticks / combinations[3]),
-                new TimeSpan(Diff[4].Ticks / combinations[4])
-            };
-
-            sb.AppendLine($"EGG BREEDING TESTING GEN {EB.GenOrigin}");
-            sb.AppendLine($"DEEPTH LIMITED TO {Limit[1]}/{Limit[2]}/{Limit[3]}/{Limit[4]}");
-            sb.AppendLine($"DURATION {Diff[0].ToString()}");
-            sb.AppendLine($"TOTAL EGG SPECIES {speciesegg}");
-            sb.AppendLine();
-            for (int i = 1; i <= 4; i++)
-            {
-                sb.AppendLine($"EGG COMBINATIONS {i} MOVES");
-                sb.AppendLine($"TOTAL {combinations[i]} OK {combinations_ok[i]} KO {combinations_ko[i]}");
-                sb.AppendLine($"MAX DEPTH {max_depth[i]}");
-                sb.AppendLine($"DURATION {Diff[i].ToString()}");
-                sb.AppendLine($"AVERAGE {Avg[i].ToString()}");
-            }
-
-            sb.AppendLine();
-            sb.AppendLine($"EGG COMBINATIONS TOTAL");
-            sb.AppendLine($"TOTAL {combinations[0]} OK {combinations_ok[0]} KO {combinations_ko[0]}");
-            sb.AppendLine($"AVERAGE {Avg[0].ToString()}");
-            sb.AppendLine($"MAX DEPTH {max_depth.Max()}");
-            sb.AppendLine();
-
-            return combinations_ok;
-        }
-
-        internal static void TestBreeding_CheckOptimal(EggBreeding EB, EggMoves[] EggLearnSet)
-        {
-            sb = new StringBuilder();
-            int[] last_ok = new[] { 0, 0, 0, 0, 0 };
-            int[] max = new[] { 0, 0, 0, 0, 0 };
-            for (int i = 1; i <= 10; i++)
-            {
-                sb.AppendLine($"TEST CONFIGURATION {i}/{i}/{i}/{i}");
-                int[] ok = TestBreeding(EB, EggLearnSet, i);
-                for (int move = 1; move <= 4; move++)
-                {
-                    if (ok[move] == last_ok[move] && max[move] == 0)
-                        max[move] = i - 1;
-                }
-                last_ok = ok;
-                if (max.Skip(1).All(m => m > 0))
-                    break;
-            }
-            sb.AppendLine($"GENERATION {EB.GenOrigin} OPTIMAL CONFIGURATION FOUND {max[1]}/{max[2]}/{max[3]}/{max[4]}");
-            sb.AppendLine("TEST OPTIMAL CONFIGURATION");
-            TestBreeding(EB, EggLearnSet, max);
-            File.WriteAllText($"EggBreedingTestGen{EB.GenOrigin}.log", sb.ToString());
-        }
-
     }
 }
