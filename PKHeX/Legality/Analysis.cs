@@ -11,12 +11,15 @@ namespace PKHeX.Core
         private DexLevel[][] EvoChainsAllGens;
         private readonly List<CheckResult> Parse = new List<CheckResult>();
 
-        private GBEncounterData GBData;
-        private object EncounterMatch, EncounterOriginal;
+        private List<GBEncounterData> EncountersGBMatch;
+        private object EncounterOriginalGB => EncountersGBMatch?.FirstOrDefault()?.Encounter;
+        private object EncounterMatch;
         private Type EncounterType;
+        private bool MatchIsMysteryGift => EncounterMatch.GetType().IsSubclassOf(typeof(MysteryGift));
         private bool EncounterIsMysteryGift => EncounterType.IsSubclassOf(typeof (MysteryGift));
-        private string EncounterName => Legal.getEncounterTypeName(pkm, EncounterOriginal ?? EncounterMatch);
+        private string EncounterName => Legal.getEncounterTypeName(pkm, EncounterOriginalGB ?? EncounterMatch);
         private List<MysteryGift> EventGiftMatch;
+        private List<EncounterStatic> EncounterStaticMatch;
         private CheckResult Encounter, History;
         private int[] RelearnBase;
         // private bool SecondaryChecked;
@@ -111,7 +114,6 @@ namespace PKHeX.Core
             verifyNickname();
             verifyDVs();
             verifyG1OT();
-            AddLine(verifyEggMoves());
         }
         private void parsePK3(PKM pk)
         {
@@ -123,7 +125,6 @@ namespace PKHeX.Core
             updateMoveLegality();
             updateEncounterInfo();
             updateChecks();
-            AddLine(verifyEggMoves());
         }
         private void parsePK4(PKM pk)
         {
@@ -136,7 +137,6 @@ namespace PKHeX.Core
             updateMoveLegality();
             updateEncounterInfo();
             updateChecks();
-            AddLine(verifyEggMoves());
         }
         private void parsePK5(PKM pk)
         {
@@ -149,7 +149,6 @@ namespace PKHeX.Core
             updateMoveLegality();
             updateEncounterInfo();
             updateChecks();
-            AddLine(verifyEggMoves());
         }
         private void parsePK6(PKM pk)
         {
@@ -196,13 +195,14 @@ namespace PKHeX.Core
 
             Encounter = verifyEncounter();
             Parse.Add(Encounter);
-            EvoChainsAllGens = Legal.getEvolutionChainsAllGens(pkm, EncounterOriginal ?? EncounterMatch);
+            EvoChainsAllGens = Legal.getEvolutionChainsAllGens(pkm, EncounterOriginalGB ?? EncounterMatch);
         }
         private void updateEncounterInfo()
         {
-            EncounterMatch = EncounterMatch ?? pkm.Species;
+            if (pkm.VC && pkm.Format == 7)
+                EncounterMatch = Legal.getRBYStaticTransfer(pkm.Species);
 
-            EncounterType = (EncounterOriginal ?? EncounterMatch)?.GetType();
+            EncounterType = (EncounterOriginalGB ?? EncounterMatch ?? pkm.Species)?.GetType();
             if (EncounterType == typeof (MysteryGift))
                 EncounterType = EncounterType?.BaseType;
         }
@@ -233,8 +233,6 @@ namespace PKHeX.Core
                 verifyRegion();
                 verifyVersionEvolution();
             }
-            if (pkm.GenNumber <= 5)
-                verifyEggMoves();
 
             // SecondaryChecked = true;
         }
@@ -305,6 +303,7 @@ namespace PKHeX.Core
 
             List<int> window = new List<int>(RelearnBase);
             window.AddRange(pkm.Moves.Where((v, i) => !vMoves[i].Valid || vMoves[i].Flag));
+            window = window.Distinct().ToList();
             if (window.Count < 4)
                 window.AddRange(new int[4 - window.Count]);
             return window.Skip(window.Count - 4).ToArray();

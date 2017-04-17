@@ -166,6 +166,9 @@
     <Compile Include="Legality\Structures\EncounterStatic.cs" />
     <Compile Include="Legality\Structures\EncounterTrade.cs" />
     <Compile Include="Legality\Structures\EvolutionTree.cs" />
+    <Compile Include="Legality\Structures\IGeneration.cs" />
+    <Compile Include="Legality\Structures\IMoveset.cs" />
+    <Compile Include="Legality\Structures\IRibbonSet.cs" />
     <Compile Include="Legality\Structures\Learnset.cs" />
     <Compile Include="Legality\Structures\Nature.cs" />
     <Compile Include="Legality\Structures\SlotType.cs" />
@@ -213,6 +216,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="Saves\Substructures\HoneyTree.cs" />
+    <Compile Include="Saves\SAV3GCMemoryCard.cs" />
     <Compile Include="Saves\SAV7.cs" />
     <Compile Include="Saves\Substructures\BattleVideo.cs" />
     <Compile Include="Saves\Substructures\BlockInfo.cs" />
@@ -854,7 +859,6 @@
     <None Include="Resources\text\zh\text_Types_zh.txt" />
     <None Include="Resources\text\zh\text_xy_00000_zh.txt" />
     <None Include="Resources\text\zh\text_Moves_zh.txt" />
-    <None Include="Resources\text\zh\text_Species_zh.txt" />
     <None Include="Resources\text\zh\text_xy_30000_zh.txt" />
     <None Include="Resources\text\zh\text_hgss_02000_zh.txt" />
     <None Include="Resources\text\zh\text_bw2_30000_zh.txt" />
@@ -3347,9 +3351,6 @@
     <None Include="Resources\img\item\item_920.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\text\zh\text_Species_zh2.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\img\Pokemon Sprites\25-1c.png" />
   </ItemGroup>
   <ItemGroup>
@@ -3428,10 +3429,10 @@
     <None Include="Resources\text\other\flags_sm.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\text\zh\text_Species_zh_alt.txt" />
+    <None Include="Resources\text\zh\text_Species_zh.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\text\zh\text_Species_zh2_alt.txt" />
+    <None Include="Resources\text\zh\text_Species_zh2.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\img\ball\_ball16.png" />
@@ -3521,9 +3522,13 @@
     <None Include="Resources\img\misc\team.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\img\box\slotHover.png" />
     <Content Include="Resources\img\misc\horohoro.png" />
     <Content Include="Resources\img\misc\vc.png" />
+    <None Include="Resources\text\zh\text_Char_zh2.txt" />
+    <None Include="Resources\text\zh\text_Char_zh.txt" />
     <None Include="Resources\text\en\LegalityCheckStrings_en.txt" />
+    <None Include="Resources\text\ko\LegalityCheckStrings_ko.txt" />
     <None Include="Resources\text\zh\LegalityCheckStrings_zh.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
