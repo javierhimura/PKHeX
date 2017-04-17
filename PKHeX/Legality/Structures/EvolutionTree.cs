@@ -212,6 +212,11 @@ namespace PKHeX.Core
                 return preevolutions.Skip(1).Select(p=>p.Species).ToArray();
             return preevolutions.Select(p => p.Species).ToArray();
         }
+
+        public int getBaseSpecies(int species, int Generation)
+        {
+            return getValidPreEvolutions(species, Generation).Last().Species;
+        }
     }
 
     public abstract class EvolutionSet
