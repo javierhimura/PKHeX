@@ -104,9 +104,37 @@ namespace PKHeX.Core
         // Yanmega Leafeon Glaceon Mamoswine Gliscor Probopass
         internal static readonly int[] UnreleasedItems_3 =
         {
-            // todo
+            005, // Safari Ball
         };
         internal static readonly bool[] ReleasedHeldItems_3 = Enumerable.Range(0, MaxItemID_3+1).Select(i => HeldItems_RS.Contains((ushort)i) && !UnreleasedItems_3.Contains(i)).ToArray();
+        internal static readonly string[] EReaderBerriesNames_USA =
+        {
+            // USA Series 1
+            "PUMKIN",
+            "DRASH",
+            "EGGANT",
+            "STRIB",
+            "CHILAN",
+            "NUTPEA",
+        };
+        internal static readonly string[] EReaderBerriesNames_JP =
+        {
+            // JP Series 1
+            "カチャ", // PUMKIN
+            "ブ－カ", // DRASH
+            "ビスナ", // EGGANT
+            "エドマ", // STRIB
+            "ホズ", // CHILAN
+            "ラッカ", // NUTPEA
+            "クオ", // KU
+            // JP Series 2
+            "ギネマ", // GINEMA
+            "クオ", // KUO
+            "ヤゴ", // YAGO
+            "トウガ", // TOUGA
+            "ニニク", // NINIKU
+            "トポ" // TOPO
+        };
         internal static readonly int[] TM_3 =
         {
             264, 337, 352, 347, 046, 092, 258, 339, 331, 237,
@@ -209,13 +237,63 @@ namespace PKHeX.Core
               36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
               46, 47, 48, 49,
         };
-        internal static readonly EncounterStatic[] Encounter_Box =
+
+        internal static readonly EncounterStatic[] EventEgg_FRLG_Exclusive =
         {
+            // Egg Pokémon Present Eggs
+            new EncounterStatic { Species = 043, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{073} }, // Oddish with Leech Seed
+            new EncounterStatic { Species = 052, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{080} }, // Meowth with Petal Dance
+            new EncounterStatic { Species = 060, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{186} }, // Poliwag with Sweet Kiss
+            new EncounterStatic { Species = 069, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{298} }, // Bellsprout with Teeter Dance
+            // Wish Egg
+            new EncounterStatic { Species = 083, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{273, 281} }, // Farfetch'd with Wish & Yawn
+            new EncounterStatic { Species = 096, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{273, 187} }, // Drowzee with Wish & Belly Drum
+            new EncounterStatic { Species = 102, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{273, 230} }, // Exeggcute with Wish & Sweet Scent
+            new EncounterStatic { Species = 108, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{273, 215} }, // Lickitung with Wish & Heal Bell
+            new EncounterStatic { Species = 113, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{273, 230} }, // Chansey with Wish & Sweet Scent
+            new EncounterStatic { Species = 115, Level = 05, EggLocation = 255, Version = GameVersion.FRLG, Moves = new[]{273, 281} }, // Kangaskhan with Wish & Yawn
+        };
+
+        internal static readonly EncounterStatic[] EventEgg_RS_Exclusive =
+        {   
+            // Pokémon Center 5th Anniversary Eggs
+            new EncounterStatic { Species = 172, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{298} }, // Pichu with Teeter Dance
+            new EncounterStatic { Species = 172, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{273} }, // Pichu with Wish
+            new EncounterStatic { Species = 280, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{204} }, // Ralts with Charm
+            new EncounterStatic { Species = 280, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{273} }, // Ralts with Wish
+            new EncounterStatic { Species = 359, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{180} }, // Absol with Spite
+            new EncounterStatic { Species = 359, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{273} }, // Absol with Wish
+            new EncounterStatic { Species = 371, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{334} }, // Bagon with Iron Defense
+            new EncounterStatic { Species = 371, Level = 05, EggLocation = 255, Version = GameVersion.RS, Moves = new[]{273} }, // Bagon with Wish
+        };
+
+        internal static readonly EncounterStatic[] EventEgg_G3_Common =
+        {
+            // Pokémon Box
             new EncounterStatic { Species = 333, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{206} }, // Swablu Egg with False Swipe
             new EncounterStatic { Species = 263, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{245} }, // Zigzagoon Egg with Extreme Speed
             new EncounterStatic { Species = 300, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{6} }, // Skitty Egg with Pay Day
             new EncounterStatic { Species = 172, Level = 05, EggLocation = 255, Version = GameVersion.RSBOX, Moves = new[]{57} }, // Pichu Egg with Surf
+            // PokePark Eggs
+            new EncounterStatic { Species = 054, Level = 05, EggLocation = 255, Moves = new[]{300} }, // Psyduck with Mud Sport
+            new EncounterStatic { Species = 172, Level = 05, EggLocation = 255, Moves = new[]{266} }, // Pichu with Follow me
+            new EncounterStatic { Species = 174, Level = 05, EggLocation = 255, Moves = new[]{321} }, // Igglybuff with Tickle
+            new EncounterStatic { Species = 222, Level = 05, EggLocation = 255, Moves = new[]{300} }, // Corsola with Mud Sport
+            new EncounterStatic { Species = 276, Level = 05, EggLocation = 255, Moves = new[]{294} }, // Taillow with Feather Dance
+            new EncounterStatic { Species = 283, Level = 05, EggLocation = 255, Moves = new[]{300} }, // Surskit with Mud Sport
+            new EncounterStatic { Species = 293, Level = 05, EggLocation = 255, Moves = new[]{298} }, // Whismur with Teeter Dance
+            new EncounterStatic { Species = 300, Level = 05, EggLocation = 255, Moves = new[]{205} }, // Skitty with Rollout
+            new EncounterStatic { Species = 311, Level = 05, EggLocation = 255, Moves = new[]{346} }, // Plusle with Water Sport
+            new EncounterStatic { Species = 312, Level = 05, EggLocation = 255, Moves = new[]{300} }, // Minun with Mud Sport
+            new EncounterStatic { Species = 325, Level = 05, EggLocation = 255, Moves = new[]{253} }, // Spoink with Uproar
+            new EncounterStatic { Species = 327, Level = 05, EggLocation = 255, Moves = new[]{047} }, // Spinda with Sing
+            new EncounterStatic { Species = 331, Level = 05, EggLocation = 255, Moves = new[]{227} }, // Cacnea with Encore
+            new EncounterStatic { Species = 341, Level = 05, EggLocation = 255, Moves = new[]{346} }, // Corphish with Water Sport
+            new EncounterStatic { Species = 360, Level = 05, EggLocation = 255, Moves = new[]{321} }, // Wynaut with Tickle
         };
+
+        internal static readonly EncounterStatic[] EventEgg_FRLG = EventEgg_FRLG_Exclusive.Concat(EventEgg_G3_Common).ToArray();
+        internal static readonly EncounterStatic[] EventEgg_RS = EventEgg_RS_Exclusive.Concat(EventEgg_G3_Common).ToArray();
 
         internal static readonly EncounterStatic[] Encounter_RSE_Roam =
         {
@@ -254,10 +332,10 @@ namespace PKHeX.Core
             new EncounterStatic { Species = 377, Level = 40, Location = 082, }, // Regirock @ Desert Ruins
             new EncounterStatic { Species = 378, Level = 40, Location = 081, }, // Regice @ Island Cave
             new EncounterStatic { Species = 379, Level = 40, Location = 083, }, // Registeel @ Ancient Tomb
-            new EncounterStatic { Species = 380, Level = 50, Location = 073, Version = GameVersion.R, }, // Latias @ Southern Island
-            new EncounterStatic { Species = 380, Level = 50, Location = 073, Version = GameVersion.E, }, // Latias @ Southern Island
-            new EncounterStatic { Species = 381, Level = 50, Location = 073, Version = GameVersion.S, }, // Latios @ Southern Island
-            new EncounterStatic { Species = 381, Level = 50, Location = 073, Version = GameVersion.E, }, // Latios @ Southern Island
+            new EncounterStatic { Species = 380, Level = 50, Location = 073, Version = GameVersion.R }, // Latias @ Southern Island
+            new EncounterStatic { Species = 380, Level = 50, Location = 073, Version = GameVersion.E, Fateful = true }, // Latias @ Southern Island
+            new EncounterStatic { Species = 381, Level = 50, Location = 073, Version = GameVersion.S }, // Latios @ Southern Island
+            new EncounterStatic { Species = 381, Level = 50, Location = 073, Version = GameVersion.E, Fateful = true }, // Latios @ Southern Island
             new EncounterStatic { Species = 382, Level = 45, Location = 072, Version = GameVersion.S, }, // Kyogre @ Cave of Origin
             new EncounterStatic { Species = 382, Level = 70, Location = 203, Version = GameVersion.E, }, // Kyogre @ Marine Cave
             new EncounterStatic { Species = 383, Level = 45, Location = 072, Version = GameVersion.R, }, // Groudon @ Cave of Origin
@@ -266,11 +344,10 @@ namespace PKHeX.Core
 
             // Event
             new EncounterStatic { Species = 151, Level = 30, Location = 201, Version = GameVersion.E, Fateful = true }, // Mew @ Faraway Island (Unreleased outside of Japan)
-            new EncounterStatic { Species = 249, Level = 70, Location = 211, Version = GameVersion.E, }, // Lugia @ Navel Rock
-            new EncounterStatic { Species = 250, Level = 70, Location = 211, Version = GameVersion.E, }, // Ho-Oh @ Navel Rock
-            new EncounterStatic { Species = 386, Level = 30, Location = 200, Version = GameVersion.E, Form = 3, Fateful = true }, // Deoxys @ Birth Island
+            new EncounterStatic { Species = 249, Level = 70, Location = 211, Version = GameVersion.E, Fateful = true }, // Lugia @ Navel Rock
+            new EncounterStatic { Species = 250, Level = 70, Location = 211, Version = GameVersion.E, Fateful = true }, // Ho-Oh @ Navel Rock
+            new EncounterStatic { Species = 386, Level = 30, Location = 200, Version = GameVersion.E, Fateful = true, Form = 3 }, // Deoxys @ Birth Island
         };
-
 
         internal static readonly EncounterStatic[] Encounter_FRLG_Roam =
         {
@@ -283,7 +360,7 @@ namespace PKHeX.Core
             // Starters @ Pallet Town
             new EncounterStatic { Gift = true, Species = 1, Level = 05, Location = 088, }, // Bulbasaur 
             new EncounterStatic { Gift = true, Species = 4, Level = 05, Location = 088, }, // Charmander
-            new EncounterStatic { Gift = true, Species = 9, Level = 05, Location = 088, }, // Squirtle
+            new EncounterStatic { Gift = true, Species = 7, Level = 05, Location = 088, }, // Squirtle
 
             // Fossil @ Cinnabar Island
             new EncounterStatic { Gift = true, Species = 138, Level = 05, Location = 096, }, // Omanyte
@@ -297,6 +374,19 @@ namespace PKHeX.Core
             new EncounterStatic { Gift = true, Species = 131, Level = 25, Location = 134, }, // Lapras @ Silph Co.
             new EncounterStatic { Gift = true, Species = 133, Level = 25, Location = 094, }, // Eevee @ Celadon City
             new EncounterStatic { Gift = true, Species = 175, Level = 05, EggLocation = 253 }, // Togepi Egg
+            
+            // Celadon City Game Corner
+            new EncounterStatic { Gift = true, Species = 063, Level = 09, Location = 94, Version = GameVersion.FR }, // Abra
+            new EncounterStatic { Gift = true, Species = 035, Level = 08, Location = 94, Version = GameVersion.FR }, // Clefairy
+            new EncounterStatic { Gift = true, Species = 123, Level = 25, Location = 94, Version = GameVersion.FR }, // Scyther
+            new EncounterStatic { Gift = true, Species = 147, Level = 18, Location = 94, Version = GameVersion.FR }, // Dratini
+            new EncounterStatic { Gift = true, Species = 137, Level = 26, Location = 94, Version = GameVersion.FR }, // Porygon
+
+            new EncounterStatic { Gift = true, Species = 063, Level = 07, Location = 94, Version = GameVersion.LG }, // Abra
+            new EncounterStatic { Gift = true, Species = 035, Level = 12, Location = 94, Version = GameVersion.LG }, // Clefairy
+            new EncounterStatic { Gift = true, Species = 127, Level = 18, Location = 94, Version = GameVersion.LG }, // Pinsir
+            new EncounterStatic { Gift = true, Species = 147, Level = 24, Location = 94, Version = GameVersion.LG }, // Dratini
+            new EncounterStatic { Gift = true, Species = 137, Level = 18, Location = 94, Version = GameVersion.LG }, // Porygon
 
             // Stationary
             new EncounterStatic { Species = 143, Level = 30, Location = 112, }, // Snorlax @ Route 12
@@ -311,14 +401,14 @@ namespace PKHeX.Core
             new EncounterStatic { Species = 150, Level = 70, Location = 141, }, // Mewtwo @ Cerulean Cave
 
             // Event
-            new EncounterStatic { Species = 249, Level = 70, Location = 174, }, // Lugia @ Navel Rock
-            new EncounterStatic { Species = 250, Level = 70, Location = 174, }, // Ho-Oh @ Navel Rock
+            new EncounterStatic { Species = 249, Level = 70, Location = 174, Fateful = true }, // Lugia @ Navel Rock
+            new EncounterStatic { Species = 250, Level = 70, Location = 174, Fateful = true }, // Ho-Oh @ Navel Rock
             new EncounterStatic { Species = 386, Level = 30, Location = 187, Version = GameVersion.FR, Form = 1, Fateful = true }, // Deoxys @ Birth Island
             new EncounterStatic { Species = 386, Level = 30, Location = 187, Version = GameVersion.LG, Form = 2, Fateful = true }, // Deoxys @ Birth Island
         };
 
-        internal static readonly EncounterStatic[] Encounter_RSE = Encounter_RSE_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_RSE)).Concat(Encounter_RSE_Regular).Concat(Encounter_Box).ToArray();
-        internal static readonly EncounterStatic[] Encounter_FRLG = Encounter_FRLG_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_FRLG)).Concat(Encounter_FRLG_Stationary).Concat(Encounter_Box).ToArray();
+        internal static readonly EncounterStatic[] Encounter_RSE = Encounter_RSE_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_RSE)).Concat(Encounter_RSE_Regular).Concat(EventEgg_RS).ToArray();
+        internal static readonly EncounterStatic[] Encounter_FRLG = Encounter_FRLG_Roam.SelectMany(e => e.Clone(Roaming_MetLocation_FRLG)).Concat(Encounter_FRLG_Stationary).Concat(EventEgg_FRLG).ToArray();
 
         private static readonly int[] TradeContest_Cool =   {30, 05, 05, 05, 05, 10};
         private static readonly int[] TradeContest_Beauty = {05, 30, 05, 05, 05, 10};
@@ -327,13 +417,13 @@ namespace PKHeX.Core
         private static readonly int[] TradeContest_Tough =  {05, 05, 05, 05, 30, 10};
         internal static readonly EncounterTrade[] TradeGift_RSE =
         {
-            new EncounterTrade { Species = 296, Ability = 2, TID = 49562, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {5,5,4,4,4,4}, Nature = Nature.Hardy, Contest = TradeContest_Tough, Version = GameVersion.RS, }, // Makuhita
-            new EncounterTrade { Species = 300, Ability = 1, TID = 02259, SID = 00000, OTGender = 1, Gender = 1, IVs = new[] {5,4,4,5,4,4}, Nature = Nature.Timid, Contest = TradeContest_Cute, Version = GameVersion.RS, }, // Skitty
-            new EncounterTrade { Species = 222, Ability = 2, TID = 50183, SID = 00000, OTGender = 1, Gender = 1, IVs = new[] {4,4,5,4,4,5}, Nature = Nature.Calm, Contest = TradeContest_Beauty, Version = GameVersion.RS, }, // Corsola
-            new EncounterTrade { Species = 273, Ability = 2, TID = 38726, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {5,4,5,4,4,4}, Nature = Nature.Relaxed, Contest = TradeContest_Cool, Version = GameVersion.E, }, // Seedot
-            new EncounterTrade { Species = 311, Ability = 1, TID = 08460, SID = 00000, OTGender = 0, Gender = 1, IVs = new[] {4,4,4,5,5,4}, Nature = Nature.Hasty, Contest = TradeContest_Cute, Version = GameVersion.E, }, // Plusle
-            new EncounterTrade { Species = 116, Ability = 1, TID = 46285, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {5,4,4,4,5,4}, Nature = Nature.Brave, Contest = TradeContest_Tough, Version = GameVersion.E, }, // Horsea*
-            new EncounterTrade { Species = 052, Ability = 1, TID = 25945, SID = 00000, OTGender = 1, Gender = 0, IVs = new[] {4,5,4,5,4,4}, Nature = Nature.Naive, Contest = TradeContest_Clever, Version = GameVersion.E, }, // Meowth*
+            new EncounterTrade { Species = 296, Ability = 2, TID = 49562, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {5,5,4,4,4,4}, Level = 05, Nature = Nature.Hardy, Contest = TradeContest_Tough, Version = GameVersion.RS, }, // Slakoth (Level 5 Breeding) -> Makuhita
+            new EncounterTrade { Species = 300, Ability = 1, TID = 02259, SID = 00000, OTGender = 1, Gender = 1, IVs = new[] {5,4,4,5,4,4}, Level = 03, Nature = Nature.Timid, Contest = TradeContest_Cute, Version = GameVersion.RS, }, // Pikachu (Level 3 Viridiam Forest) -> Skitty
+            new EncounterTrade { Species = 222, Ability = 2, TID = 50183, SID = 00000, OTGender = 1, Gender = 1, IVs = new[] {4,4,5,4,4,5}, Level = 21, Nature = Nature.Calm, Contest = TradeContest_Beauty, Version = GameVersion.RS, }, // Bellossom (Level 21 Odish -> Gloom -> Bellossom) -> Corsola
+            new EncounterTrade { Species = 273, Ability = 2, TID = 38726, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {5,4,5,4,4,4}, Level = 04, Nature = Nature.Relaxed, Contest = TradeContest_Cool, Version = GameVersion.E, }, // Ralts (Level 4 Route 102) -> Seedot
+            new EncounterTrade { Species = 311, Ability = 1, TID = 08460, SID = 00001, OTGender = 0, Gender = 1, IVs = new[] {4,4,4,5,5,4}, Level = 05, Nature = Nature.Hasty, Contest = TradeContest_Cute, Version = GameVersion.E, }, // Volbeat (Level 5 Breeding) -> Plusle
+            new EncounterTrade { Species = 116, Ability = 1, TID = 46285, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {5,4,4,4,5,4}, Level = 05, Nature = Nature.Brave, Contest = TradeContest_Tough, Version = GameVersion.E, }, // Bagon 	Bagon (Level 5 Breeding) -> Horsea*
+            new EncounterTrade { Species = 052, Ability = 1, TID = 25945, SID = 00001, OTGender = 1, Gender = 0, IVs = new[] {4,5,4,5,4,4}, Level = 03, Nature = Nature.Naive, Contest = TradeContest_Clever, Version = GameVersion.E, }, // Skitty (Level 3 Trade)-> Meowth*
             //  If Pokémon with * is evolved in a Generation IV or V game, its Ability will become its second Ability.
         };
         internal static readonly EncounterTrade[] TradeGift_FRLG =
@@ -345,8 +435,8 @@ namespace PKHeX.Core
             new EncounterTrade { Species = 033, Ability = 1, TID = 13637, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {19,18,25,22,15,22}, Nature = Nature.Bold, Contest = TradeContest_Tough, Version = GameVersion.LG,}, // Nidorino  *
             new EncounterTrade { Species = 108, Ability = 1, TID = 01239, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {24,19,21,15,23,21}, Nature = Nature.Relaxed, Contest = TradeContest_Tough, }, // Lickitung  * 
             new EncounterTrade { Species = 124, Ability = 1, TID = 36728, SID = 00000, OTGender = 0, Gender = 1, IVs = new[] {18,17,18,22,25,21}, Nature = Nature.Mild, Contest = TradeContest_Beauty, }, // Jynx
-            new EncounterTrade { Species = 083, Ability = 1, TID = 08810, SID = 00000, OTGender = 1, Gender = 0, IVs = new[] {20,25,21,24,15,20}, Nature = Nature.Adamant, Contest = TradeContest_Cool, }, // Farfetch'd
-            new EncounterTrade { Species = 101, Ability = 1, TID = 50298, SID = 00000, OTGender = 0, Gender = 2, IVs = new[] {19,16,18,25,25,19}, Nature = Nature.Hasty, Contest = TradeContest_Cool, }, // Electrode
+            new EncounterTrade { Species = 083, Ability = 1, TID = 08810, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {20,25,21,24,15,20}, Nature = Nature.Adamant, Contest = TradeContest_Cool, }, // Farfetch'd
+            new EncounterTrade { Species = 101, Ability = 2, TID = 50298, SID = 00000, OTGender = 0, Gender = 2, IVs = new[] {19,16,18,25,25,19}, Nature = Nature.Hasty, Contest = TradeContest_Cool, }, // Electrode
             new EncounterTrade { Species = 114, Ability = 1, TID = 60042, SID = 00000, OTGender = 1, Gender = 0, IVs = new[] {22,17,25,16,23,20}, Nature = Nature.Sassy, Contest = TradeContest_Cute, }, // Tangela
             new EncounterTrade { Species = 086, Ability = 1, TID = 09853, SID = 00000, OTGender = 0, Gender = 0, IVs = new[] {24,15,22,16,23,22}, Nature = Nature.Bold, Contest = TradeContest_Tough, }, // Seel *
             //  If Pokémon with * is evolved in a Generation IV or V game, its Ability will become its second Ability.
@@ -490,7 +580,7 @@ namespace PKHeX.Core
                     new EncounterSlot { Species = 201, LevelMin = 25, LevelMax = 25, Type = SlotType.Grass, Form = 23 }, // Unown X
                 },},
             new EncounterArea {
-                Location = 193, // Viapois Chamber
+                Location = 194, // Viapois Chamber
                 Slots = new[]
                 {
                     new EncounterSlot { Species = 201, LevelMin = 25, LevelMax = 25, Type = SlotType.Grass, Form = 25 }, // Unown Z
@@ -520,14 +610,16 @@ namespace PKHeX.Core
             060, 061, 062, 063, 065, 066, 067, 068, 069, 070, 071, 072, 073, 074, 075, 076, 077, 078, 079, 080,
             081, 082, 083, 085, 086, 087,
         };
+        // 155 - 158 Sevii Isle 6-9 Unused
+        // 171 - 173 Sevii Isle 22-24 Unused
         internal static readonly int[] ValidMet_FRLG =
         {
             087, 088, 089, 090, 091, 092, 093, 094, 095, 096, 097, 098, 099,
             100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119,
             120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139,
-            140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
-            160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
-            180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196
+            140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 159, 160, 161, 162, 163,
+            164, 165, 166, 167, 168, 169, 170, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186,
+            187, 188, 189, 190, 191, 192, 193, 194, 195, 196
         };
         internal static readonly int[] ValidMet_E = ValidMet_RS.Concat(new[]
         {

@@ -129,11 +129,11 @@ namespace PKHeX.Core
                     SeenFlagOffsets = new[] {BlockOfs[0] + 0x5C, BlockOfs[1] + 0x5F8, BlockOfs[4] + 0xB98};
                     break;
             }
+            LoadEReaderBerryData();
             LegalItems = Legal.Pouch_Items_RS;
             LegalBalls = Legal.Pouch_Ball_RS;
             LegalTMHMs = Legal.Pouch_TMHM_RS;
             LegalBerries = Legal.Pouch_Berries_RS;
-
             HeldItems = Legal.HeldItems_RS;
 
             if (!Exportable)
@@ -163,7 +163,7 @@ namespace PKHeX.Core
         public int getBlockOffset(int block) => BlockOfs[block];
 
         // Configuration
-        public override SaveFile Clone() { return new SAV3(Write(DSV:false), Version); }
+        public override SaveFile Clone() { return new SAV3(Write(DSV:false), Version) {Japanese = Japanese}; }
         public override bool IndeterminateGame => Version == GameVersion.Unknown;
         public override bool IndeterminateLanguage => true; // Unknown JP/International
         public override bool IndeterminateSubVersion => Version == GameVersion.FRLG;
@@ -184,7 +184,7 @@ namespace PKHeX.Core
         public override int MaxEV => 255;
         public override int Generation => 3;
         protected override int GiftCountMax => 1;
-        public override int OTLength => 8;
+        public override int OTLength => 7;
         public override int NickLength => 10;
         public override int MaxMoney => 999999;
 
@@ -248,23 +248,8 @@ namespace PKHeX.Core
         }
         public override string OT
         {
-            get
-            {
-                return PKX.getG3Str(Data.Skip(BlockOfs[0]).Take(0x10).ToArray(), Japanese)
-                    .Replace("\uE08F", "\u2640") // Nidoran ♂
-                    .Replace("\uE08E", "\u2642") // Nidoran ♀
-                    .Replace("\u2019", "\u0027"); // Farfetch'd
-            }
-            set
-            {
-                if (value.Length > 7)
-                    value = value.Substring(0, 7); // Hard cap
-                string TempNick = value // Replace Special Characters and add Terminator
-                .Replace("\u2640", "\uE08F") // Nidoran ♂
-                .Replace("\u2642", "\uE08E") // Nidoran ♀
-                .Replace("\u0027", "\u2019"); // Farfetch'd
-                PKX.setG3Str(TempNick, Japanese).CopyTo(Data, BlockOfs[0]);
-            }
+            get { return getString(BlockOfs[0], 0x10); }
+            set { setString(value, 7).CopyTo(Data, BlockOfs[0]); }
         }
         public override int Gender
         {
@@ -301,7 +286,29 @@ namespace PKHeX.Core
             get { return Data[BlockOfs[0] + 0x12]; }
             set { Data[BlockOfs[0] + 0x12] = (byte)value; }
         }
-
+        public int Badges
+        {
+            get
+            {
+                switch (Version)
+                {
+                    case GameVersion.E: return BitConverter.ToUInt16(Data, BlockOfs[2] + 0x3FC) >> 7 & 0xFF;
+                    case GameVersion.FRLG: return Data[BlockOfs[2] + 0x64];
+                    default: return 0; // RS
+                }
+            }
+            set
+            {
+                switch (Version)
+                {
+                    case GameVersion.E:
+                        BitConverter.GetBytes(BitConverter.ToUInt16(Data, BlockOfs[2] + 0x3FC) & ~(0xFF << 7) | (value << 7)).CopyTo(Data, BlockOfs[2] + 0x3FC);
+                        break;
+                    case GameVersion.FRLG: Data[BlockOfs[2] + 0x64] = (byte)value; break;
+                    default: return; // RS
+                }
+            }
+        }
         public override uint Money
         {
             get
@@ -457,14 +464,12 @@ namespace PKHeX.Core
         public override string getBoxName(int box)
         {
             int offset = getBoxOffset(BoxCount);
-            return PKX.getG3Str(Data.Skip(offset + box * 9).Take(9).ToArray(), Japanese);
+            return PKX.getString3(Data, offset + box * 9, 9, Japanese);
         }
         public override void setBoxName(int box, string value)
         {
-            if (value.Length > 8)
-                value = value.Substring(0, 8); // Hard cap
             int offset = getBoxOffset(BoxCount);
-            PKX.setG3Str(value, Japanese).CopyTo(Data, offset + box * 9);
+            setString(value, 8).CopyTo(Data, offset + box * 9);
         }
         public override PKM getPKM(byte[] data)
         {
@@ -591,6 +596,100 @@ namespace PKHeX.Core
                         BitConverter.GetBytes((ushort)(value ? 0x6258 : 0)).CopyTo(Data, BlockOfs[2] + 0x11C); // C
                         break;
                 }
+            }
+        }
+        public override string getString(int Offset, int Count) => PKX.getString3(Data, Offset, Count, Japanese);
+        public override byte[] setString(string value, int maxLength, int PadToSize = 0, ushort PadWith = 0)
+        {
+            if (PadToSize == 0)
+                PadToSize = maxLength + 1;
+            return PKX.setString3(value, maxLength, Japanese, PadToSize, PadWith);
+        }
+
+        #region eBerry
+        // Offset and checksum code based from
+        // https://github.com/suloku/wc-tool by Suloku
+        private const int SIZE_EBERRY = 0x530;
+        private const int OFFSET_EBERRY = 0x2E0;
+
+        private uint eBerryChecksum => BitConverter.ToUInt32(Data, BlockOfs[4] + OFFSET_EBERRY + SIZE_EBERRY - 4);
+        private bool eBerryChecksumValid { get; set; }
+
+        public override string eBerryName
+        {
+            get
+            {
+                if (!GameVersion.RS.Contains(Version) || !eBerryChecksumValid)
+                    return string.Empty;
+                return PKX.getString3(Data, BlockOfs[4] + OFFSET_EBERRY, 7, Japanese).Trim();
+            }
+        }
+        public override bool eBerryIsEnigma => string.IsNullOrEmpty(eBerryName.Trim());
+
+        private void LoadEReaderBerryData()
+        {
+            if (!GameVersion.RS.Contains(Version))
+                return;
+
+            byte[] data = getData(BlockOfs[4] + OFFSET_EBERRY, SIZE_EBERRY - 4);
+
+            // 8 bytes are 0x00 for chk calculation
+            for (int i = 0; i < 8; i++)
+                data[0xC + i] = 0x00;
+            uint chk = (uint)data.Sum(z => z);
+            eBerryChecksumValid = eBerryChecksum == chk;
+        }
+        #endregion
+
+        // RTC
+        public class RTC3
+        {
+            public readonly byte[] Data;
+            private const int Size = 8;
+            public RTC3(byte[] data = null)
+            {
+                if (data == null || data.Length != Size)
+                    data = new byte[8];
+                Data = data;
+            }
+
+            public int Day { get { return BitConverter.ToUInt16(Data, 0x00); } set { BitConverter.GetBytes((ushort)value).CopyTo(Data, 0x00); } }
+            public int Hour { get { return Data[2]; } set { Data[2] = (byte)value; } }
+            public int Minute { get { return Data[3]; } set { Data[3] = (byte)value; } }
+            public int Second { get { return Data[4]; } set { Data[4] = (byte)value; } }
+        }
+        public RTC3 ClockInitial
+        {
+            get
+            {
+                if (FRLG)
+                    return null;
+                int block0 = getBlockOffset(0);
+                return new RTC3(getData(block0 + 0x98, 8));
+            }
+            set
+            {
+                if (value?.Data == null || FRLG)
+                    return;
+                int block0 = getBlockOffset(0);
+                setData(value.Data, block0 + 0x98);
+            }
+        }
+        public RTC3 ClockElapsed
+        {
+            get
+            {
+                if (FRLG)
+                    return null;
+                int block0 = getBlockOffset(0);
+                return new RTC3(getData(block0 + 0xA0, 8));
+            }
+            set
+            {
+                if (value?.Data == null || FRLG)
+                    return;
+                int block0 = getBlockOffset(0);
+                setData(value.Data, block0 + 0xA0);
             }
         }
     }

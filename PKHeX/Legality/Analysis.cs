@@ -11,26 +11,51 @@ namespace PKHeX.Core
         private DexLevel[][] EvoChainsAllGens;
         private readonly List<CheckResult> Parse = new List<CheckResult>();
 
-        private GBEncounterData GBData;
-        private object EncounterMatch, EncounterOriginal;
-        private Type EncounterType;
-        private bool EncounterIsMysteryGift => EncounterType.IsSubclassOf(typeof (MysteryGift));
-        private string EncounterName => Legal.getEncounterTypeName(pkm, EncounterOriginal ?? EncounterMatch);
+        private List<GBEncounterData> EncountersGBMatch;
+        private object EncounterOriginalGB => EncountersGBMatch?.FirstOrDefault()?.Encounter;
+        private object EncounterMatch;
+        private Type Type; // Encounter
+        private bool MatchIsMysteryGift => EncounterMatch.GetType().IsSubclassOf(typeof(MysteryGift));
+        private bool EncounterIsMysteryGift => Type.IsSubclassOf(typeof (MysteryGift));
+        private string EncounterName => Legal.getEncounterTypeName(pkm, EncounterOriginalGB ?? EncounterMatch);
         private List<MysteryGift> EventGiftMatch;
+        private List<EncounterStatic> EncounterStaticMatch;
         private CheckResult Encounter, History;
         private int[] RelearnBase;
         // private bool SecondaryChecked;
 
         public readonly bool Parsed;
         public readonly bool Valid;
+        public readonly bool Error;
         public bool ParsedValid => Parsed && Valid;
         public bool ParsedInvalid => Parsed && !Valid;
         public CheckResult[] vMoves = new CheckResult[4];
         public CheckResult[] vRelearn = new CheckResult[4];
-        public string Report(bool verbose = false) => verbose ? getVerboseLegalityReport() : getLegalityReport(); 
-        public readonly int[] AllSuggestedMoves;
-        public readonly int[] AllSuggestedRelearnMoves;
-        public readonly int[] AllSuggestedMovesAndRelearn;
+        public string Report(bool verbose = false) => verbose ? getVerboseLegalityReport() : getLegalityReport();
+        private IEnumerable<int> AllSuggestedMoves
+        {
+            get
+            {
+                if (Error)
+                    return new int[4];
+                if (_allSuggestedMoves == null)
+                    return _allSuggestedMoves = !pkm.IsOriginValid ? new int[4] : getSuggestedMoves(true, true, true);
+                return _allSuggestedMoves;
+            }
+        }
+        private IEnumerable<int> AllSuggestedRelearnMoves
+        {
+            get
+            {
+                if (Error)
+                    return new int[4];
+                if (_allSuggestedRelearnMoves == null)
+                    return _allSuggestedRelearnMoves = !pkm.IsOriginValid ? new int[4] : Legal.getValidRelearn(pkm, -1).ToArray();
+                return _allSuggestedRelearnMoves;
+            }
+        }
+        private int[] _allSuggestedMoves, _allSuggestedRelearnMoves;
+        public int[] AllSuggestedMovesAndRelearn => AllSuggestedMoves.Concat(AllSuggestedRelearnMoves).ToArray();
 
         public LegalityAnalysis(PKM pk)
         {
@@ -73,8 +98,6 @@ namespace PKHeX.Core
                     if (pkm.FatefulEncounter && vRelearn.Any(chk => !chk.Valid) && EncounterMatch == null)
                         AddLine(Severity.Indeterminate, V188, CheckIdentifier.Fateful);
                 }
-                else
-                    return;
             }
             catch (Exception e)
             {
@@ -82,12 +105,8 @@ namespace PKHeX.Core
                 Valid = false;
                 Parsed = true;
                 AddLine(Severity.Invalid, V190, CheckIdentifier.Misc);
-                AllSuggestedMoves = AllSuggestedRelearnMoves = AllSuggestedMovesAndRelearn = new int[0];
-                return;
+                Error = true;
             }
-            AllSuggestedMoves = !pkm.IsOriginValid ? new int[4] : getSuggestedMoves(true, true, true);
-            AllSuggestedRelearnMoves = !pkm.IsOriginValid ? new int[4] : Legal.getValidRelearn(pkm, -1).ToArray();
-            AllSuggestedMovesAndRelearn = AllSuggestedMoves.Concat(AllSuggestedRelearnMoves).ToArray();
         }
 
         private void AddLine(Severity s, string c, CheckIdentifier i)
@@ -107,11 +126,10 @@ namespace PKHeX.Core
             
             updateEncounterChain();
             updateMoveLegality();
-            updateEncounterInfo();
+            updateTypeInfo();
             verifyNickname();
             verifyDVs();
             verifyG1OT();
-            AddLine(verifyEggMoves());
         }
         private void parsePK3(PKM pk)
         {
@@ -121,9 +139,8 @@ namespace PKHeX.Core
             
             updateEncounterChain();
             updateMoveLegality();
-            updateEncounterInfo();
+            updateTypeInfo();
             updateChecks();
-            AddLine(verifyEggMoves());
         }
         private void parsePK4(PKM pk)
         {
@@ -134,9 +151,8 @@ namespace PKHeX.Core
             verifyPreRelearn();
             updateEncounterChain();
             updateMoveLegality();
-            updateEncounterInfo();
+            updateTypeInfo();
             updateChecks();
-            AddLine(verifyEggMoves());
         }
         private void parsePK5(PKM pk)
         {
@@ -147,9 +163,8 @@ namespace PKHeX.Core
             verifyPreRelearn();
             updateEncounterChain();
             updateMoveLegality();
-            updateEncounterInfo();
+            updateTypeInfo();
             updateChecks();
-            AddLine(verifyEggMoves());
         }
         private void parsePK6(PKM pk)
         {
@@ -160,7 +175,7 @@ namespace PKHeX.Core
             updateRelearnLegality();
             updateEncounterChain();
             updateMoveLegality();
-            updateEncounterInfo();
+            updateTypeInfo();
             updateChecks();
         }
         private void parsePK7(PKM pk)
@@ -172,7 +187,7 @@ namespace PKHeX.Core
             updateRelearnLegality();
             updateEncounterChain();
             updateMoveLegality();
-            updateEncounterInfo();
+            updateTypeInfo();
             updateChecks();
         }
 
@@ -196,15 +211,16 @@ namespace PKHeX.Core
 
             Encounter = verifyEncounter();
             Parse.Add(Encounter);
-            EvoChainsAllGens = Legal.getEvolutionChainsAllGens(pkm, EncounterOriginal ?? EncounterMatch);
+            EvoChainsAllGens = Legal.getEvolutionChainsAllGens(pkm, EncounterOriginalGB ?? EncounterMatch);
         }
-        private void updateEncounterInfo()
+        private void updateTypeInfo()
         {
-            EncounterMatch = EncounterMatch ?? pkm.Species;
+            if (pkm.VC && pkm.Format == 7)
+                EncounterMatch = Legal.getRBYStaticTransfer(pkm.Species);
 
-            EncounterType = (EncounterOriginal ?? EncounterMatch)?.GetType();
-            if (EncounterType == typeof (MysteryGift))
-                EncounterType = EncounterType?.BaseType;
+            Type = (EncounterOriginalGB ?? EncounterMatch ?? pkm.Species)?.GetType();
+            if (Type == typeof (MysteryGift))
+                Type = Type?.BaseType;
         }
         private void updateChecks()
         {
@@ -221,7 +237,8 @@ namespace PKHeX.Core
             verifyMisc();
             verifyGender();
             verifyItem();
-
+            if (pkm.Format >= 4)
+                verifyEncounterType();
             if (pkm.Format >= 6)
             {
                 History = verifyHistory();
@@ -233,8 +250,6 @@ namespace PKHeX.Core
                 verifyRegion();
                 verifyVersionEvolution();
             }
-            if (pkm.GenNumber <= 5)
-                verifyEggMoves();
 
             // SecondaryChecked = true;
         }
@@ -305,6 +320,7 @@ namespace PKHeX.Core
 
             List<int> window = new List<int>(RelearnBase);
             window.AddRange(pkm.Moves.Where((v, i) => !vMoves[i].Valid || vMoves[i].Flag));
+            window = window.Distinct().ToList();
             if (window.Count < 4)
                 window.AddRange(new int[4 - window.Count]);
             return window.Skip(window.Count - 4).ToArray();
