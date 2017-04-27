@@ -12,11 +12,11 @@ namespace PKHeX.Core
         private readonly List<CheckResult> Parse = new List<CheckResult>();
 
         private List<GBEncounterData> EncountersGBMatch;
-        private object EncounterOriginalGB => EncountersGBMatch?.FirstOrDefault()?.Encounter;
+        private object EncounterOriginalGB;
         private object EncounterMatch;
-        private Type Type; // Encounter
-        private bool MatchIsMysteryGift => EncounterMatch.GetType().IsSubclassOf(typeof(MysteryGift));
-        private bool EncounterIsMysteryGift => Type.IsSubclassOf(typeof (MysteryGift));
+        private int EncounterSpecies;
+        private Type Type; // Parent class when applicable (EncounterStatic / MysteryGift)
+        private Type MatchedType; // Child class if applicable (WC6, PGF, etc)
         private string EncounterName => Legal.getEncounterTypeName(pkm, EncounterOriginalGB ?? EncounterMatch);
         private List<MysteryGift> EventGiftMatch;
         private List<EncounterStatic> EncounterStaticMatch;
@@ -123,13 +123,14 @@ namespace PKHeX.Core
             pkm = pk;
             if (!pkm.IsOriginValid)
             { AddLine(Severity.Invalid, V187, CheckIdentifier.None); return; }
-            
+            updateTradebackG12();
             updateEncounterChain();
             updateMoveLegality();
             updateTypeInfo();
             verifyNickname();
             verifyDVs();
             verifyG1OT();
+            verifyMiscG1();
         }
         private void parsePK3(PKM pk)
         {
@@ -213,14 +214,69 @@ namespace PKHeX.Core
             Parse.Add(Encounter);
             EvoChainsAllGens = Legal.getEvolutionChainsAllGens(pkm, EncounterOriginalGB ?? EncounterMatch);
         }
+        private void updateTradebackG12()
+        {
+            if (pkm.Format == 1)
+            {
+                if (!Legal.AllowGen1Tradeback)
+                {
+                    pkm.TradebackStatus = TradebackType.Gen1_NotTradeback;
+                    ((PK1)pkm).CatchRateIsItem = false;
+                    return;
+                }
+
+                // Detect tradeback status by comparing the catch rate(Gen1)/held item(Gen2) to the species in the pkm's evolution chain.
+                var catch_rate = ((PK1)pkm).Catch_Rate;
+
+                // For species catch rate, discard any species that has no valid encounters and a different catch rate than their pre-evolutions
+                var Lineage = Legal.getLineage(pkm).Where(s => !Legal.Species_NotAvailable_CatchRate.Contains(s)).ToList();
+                // Dragonite's Catch Rate is different than Dragonair's in Yellow, but there is no Dragonite encounter.
+                var RGBCatchRate = Lineage.Any(s => catch_rate == PersonalTable.RB[s].CatchRate);
+                var YCatchRate = Lineage.Any(s => s != 149 && catch_rate == PersonalTable.Y[s].CatchRate);
+
+                bool matchAny = RGBCatchRate || YCatchRate;
+
+                // If the catch rate value has been modified, the item has either been removed or swapped in Generation 2.
+                var HeldItemCatchRate = catch_rate == 0 || Legal.HeldItems_GSC.Any(h => h == catch_rate);
+                if (HeldItemCatchRate && !matchAny)
+                    pkm.TradebackStatus = TradebackType.WasTradeback;
+                else if (!HeldItemCatchRate && matchAny)
+                    pkm.TradebackStatus = TradebackType.Gen1_NotTradeback;
+                else
+                    pkm.TradebackStatus = TradebackType.Any;
+
+
+                // Update the editing settings for the PKM to acknowledge the tradeback status if the species is changed.
+                ((PK1)pkm).CatchRateIsItem = !pkm.Gen1_NotTradeback && HeldItemCatchRate && matchAny;
+            }
+            else if (pkm.Format == 2 || pkm.VC2)
+            {
+                // Eggs, pokemon with non-empty crystal met location, and generation 2 species without generation 1 preevolutions can't be traded to generation 1.
+                if (pkm.IsEgg || pkm.HasOriginalMetLocation || (pkm.Species > Legal.MaxSpeciesID_1 && !Legal.FutureEvolutionsGen1.Contains(pkm.Species)))
+                    pkm.TradebackStatus = TradebackType.Gen2_NotTradeback;
+                else
+                    pkm.TradebackStatus = TradebackType.Any;
+            }
+            else if (pkm.VC1)
+            {
+                // If VC2 is ever released, we can assume it will be TradebackType.Any.
+                // Met date cannot be used definitively as the player can change their system clock.
+                pkm.TradebackStatus = TradebackType.Gen1_NotTradeback;
+            }
+            else
+            {
+                pkm.TradebackStatus = TradebackType.Any;
+            }
+        }
         private void updateTypeInfo()
         {
             if (pkm.VC && pkm.Format == 7)
                 EncounterMatch = Legal.getRBYStaticTransfer(pkm.Species);
 
-            Type = (EncounterOriginalGB ?? EncounterMatch ?? pkm.Species)?.GetType();
-            if (Type == typeof (MysteryGift))
-                Type = Type?.BaseType;
+            MatchedType = Type = (EncounterOriginalGB ?? EncounterMatch ?? pkm.Species)?.GetType();
+            var bt = Type.BaseType;
+            if (!(bt == typeof(Array) || bt == typeof(object) || bt.IsPrimitive)) // a parent exists
+                Type = bt; // use base type
         }
         private void updateChecks()
         {

@@ -977,13 +977,21 @@ namespace PKHeX.WinForms
                 if (drVC == DialogResult.Cancel)
                     return;
                 Legal.AllowGBCartEra = drVC == DialogResult.No; // physical cart selected
+                if (Legal.AllowGBCartEra && sav.Generation == 1)
+                {
+                    var drTradeback = WinFormsUtil.Prompt(MessageBoxButtons.YesNoCancel, $"Generation {SAV.Generation} Save File detected. Allow tradebacks from Generation 2 for legality purposes?",
+                        "Yes: Allow Generation 2 tradeback learnsets" + Environment.NewLine + "No: Don't allow Generation 2 tradeback learnsets");
+                    Legal.AllowGen1Tradeback = drTradeback == DialogResult.Yes;
+                }
+                else
+                    Legal.AllowGen1Tradeback = false;
             }
             else
-                Legal.AllowGBCartEra = sav.Generation == 2;
+                Legal.AllowGBCartEra = Legal.AllowGen1Tradeback  = sav.Generation == 2;
 
             if (sav.Generation == 3 && (sav.IndeterminateGame || ModifierKeys == Keys.Control))
             {
-                WinFormsUtil.Alert("Gen3 Game Detected.", "Select version.");
+                WinFormsUtil.Alert($"Generation {SAV.Generation} Save File detected.", "Select version.");
                 var g = new[] {GameVersion.R, GameVersion.S, GameVersion.E, GameVersion.FR, GameVersion.LG};
                 var games = g.Select(z => GameInfo.VersionDataSource.First(v => v.Value == (int)z));
                 var dialog = new SAV_GameSelect(games);
@@ -1005,7 +1013,7 @@ namespace PKHeX.WinForms
             {
                 string fr = GameInfo.VersionDataSource.First(r => r.Value == (int)GameVersion.FR).Text;
                 string lg = GameInfo.VersionDataSource.First(l => l.Value == (int)GameVersion.LG).Text;
-                const string dual = "{0}/{1} Game Detected.";
+                const string dual = "{0}/{1} Save File Detected.";
                 WinFormsUtil.Alert(string.Format(dual, fr, lg), "Select version.");
                 var g = new[] {GameVersion.FR, GameVersion.LG};
                 var games = g.Select(z => GameInfo.VersionDataSource.First(v => v.Value == (int)z));

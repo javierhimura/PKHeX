@@ -125,7 +125,7 @@
 
     public class EncounterStaticTyped : EncounterStatic
     {
-        public EncounterType TypeEncounter = EncounterType.None;
+        public EncounterType TypeEncounter = EncounterType.Any;
 
         protected override EncounterStatic Clone(int location)
         {
@@ -157,6 +157,15 @@
                 EggCycles = EggCycles,
                 TypeEncounter = TypeEncounter,
             };
+        }
+    }
+
+    public class EncounterStaticShadow : EncounterStatic
+    {
+        public EncounterLock[] Locks;
+        protected override EncounterStatic Clone(int location)
+        {
+            throw new System.Exception();
         }
     }
 }
