@@ -13,7 +13,6 @@ namespace PKHeX.Core
         private readonly int MaxSpeciesTree;
         private readonly int Generation;
 
-
         public EvolutionTree(byte[][] data, GameVersion game, PersonalTable personal, int maxSpeciesTree)
         {
             Game = game;
@@ -211,6 +210,11 @@ namespace PKHeX.Core
             if (preevolutions.Count() == 3)
                 return preevolutions.Skip(1).Select(p=>p.Species).ToArray();
             return preevolutions.Select(p => p.Species).ToArray();
+        }
+
+        public int getBaseSpecies(int species, int Generation)
+        {
+            return getValidPreEvolutions(species, Generation).Last().Species;
         }
     }
 

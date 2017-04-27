@@ -152,6 +152,7 @@
     <Compile Include="Game\GameVersion.cs" />
     <Compile Include="Legality\Analysis.cs" />
     <Compile Include="Legality\Checks.cs" />
+    <Compile Include="Legality\CoreBreeding.cs" />
     <Compile Include="Legality\LegalityCheckStrings.cs" />
     <Compile Include="Legality\Core.cs" />
     <Compile Include="Legality\Data.cs" />
