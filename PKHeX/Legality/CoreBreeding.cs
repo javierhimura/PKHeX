@@ -8,14 +8,17 @@ namespace PKHeX.Core
 {
     public static partial class Legal
     {
-        internal static IEnumerable<int> getCanBreedMove(int species, int GenOrigin, int GenFormat, int[] EggMoves)
+        internal static IEnumerable<int> getCanBreedMove(int species, int baseSpecies, int GenOrigin, int GenFormat, int[] EggMoves)
         {
             if(species == 235)
                 return EggMoves.Except(InvalidSketch);
 
             List<int> r = new List<int>();
             var table = getEvolutionTable(GenOrigin);
-            var preevos = table.getValidPreEvolutions(species, GenOrigin);
+            DexLevel[] preevos = table.getValidPreEvolutions(species, GenOrigin).ToArray();
+
+            int minindex = Math.Max(0, Array.FindIndex(preevos, p => p.Species == baseSpecies));
+            Array.Resize(ref preevos, minindex + 1);
 
             foreach (DexLevel vs in preevos)
             {
@@ -113,19 +116,7 @@ namespace PKHeX.Core
             }
             return r.Intersect(EggMoves).Distinct();
         }
-        public static IEnumerable<int> getCanBreedChainEggMoves(int species, int GenOrigin, int GenFormat, int[] EggMoves)
-        {
-            List<int> r = new List<int>();
-            var table = getEvolutionTable(GenOrigin);
-            var preevos = table.getValidPreEvolutions(species, GenOrigin);
-
-            foreach (DexLevel vs in preevos)
-            {
-                r.AddRange(getCanBreedChainEggMoves(vs, GenOrigin, GenFormat, EggMoves));
-            }
-            return r.Distinct();
-        }
-        internal static IEnumerable<int> getCanBreedChainEggMoves(DexLevel vs, int GenOrigin, int GenFormat, int[] EggMoves)
+        internal static IEnumerable<int> getCanBreedChainEggMoves(int Species, int GenOrigin, int GenFormat, int[] EggMoves)
         {
             IEnumerable<int> r = new List<int>();
 
@@ -133,18 +124,18 @@ namespace PKHeX.Core
             {
                 case 1:
                 case 2:
-                    r = EggMovesGS[vs.Species].Moves.Union(EggMovesC[vs.Species].Moves);
+                    r = EggMovesGS[Species].Moves.Union(EggMovesC[Species].Moves);
                     if (GenOrigin == 1)
                         r = r.Where(m => m <= MaxMoveID_1);
                     break;
                 case 3:
-                    r = EggMovesRS[vs.Species].Moves;
+                    r = EggMovesRS[Species].Moves;
                     break;
                 case 4:
-                    r = EggMovesDPPt[vs.Species].Moves.Union(EggMovesHGSS[vs.Species].Moves);
+                    r = EggMovesDPPt[Species].Moves.Union(EggMovesHGSS[Species].Moves);
                     break;
                 case 5:
-                    r = EggMovesBW[vs.Species].Moves;
+                    r = EggMovesBW[Species].Moves;
                     break;
             }
             if (GenOrigin != GenFormat)
