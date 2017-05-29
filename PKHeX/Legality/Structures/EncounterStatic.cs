@@ -6,8 +6,8 @@
         public int[] Moves { get; set; }
         public int Level;
 
-        public int LevelMin { get { return Level; } }
-        public int LevelMax { get { return Level; } }
+        public int LevelMin => Level;
+        public int LevelMax => Level;
         public int Generation { get; set; } = -1;
         public int Location;
         public int Ability;
@@ -41,7 +41,7 @@
             return Encounters;
         }
 
-        public EncounterStatic Clone(int location)
+        protected virtual EncounterStatic Clone(int location)
         {
             return new EncounterStatic
             {
@@ -68,7 +68,7 @@
                 SkipFormCheck = SkipFormCheck,
                 NSparkle = NSparkle,
                 Roaming = Roaming,
-                EggCycles = EggCycles
+                EggCycles = EggCycles,
             };
         }
 
@@ -107,7 +107,7 @@
                 SkipFormCheck = SkipFormCheck,
                 NSparkle = NSparkle,
                 Roaming = Roaming,
-                EggCycles = EggCycles
+                EggCycles = EggCycles,
             };
         }
 
@@ -120,6 +120,52 @@
                     return game;
                 return game + " " + $"({Version})";
             }
+        }
+    }
+
+    public class EncounterStaticTyped : EncounterStatic
+    {
+        public EncounterType TypeEncounter = EncounterType.Any;
+
+        protected override EncounterStatic Clone(int location)
+        {
+            return new EncounterStaticTyped
+            {
+                Species = Species,
+                Level = Level,
+                Location = location,
+                Ability = Ability,
+                Form = Form,
+                Shiny = Shiny,
+                Relearn = Relearn,
+                Moves = Moves,
+                Gender = Gender,
+                EggLocation = EggLocation,
+                Nature = Nature,
+                Gift = Gift,
+                Ball = Ball,
+                Version = Version,
+                IVs = IVs,
+                IV3 = IV3,
+                Contest = Contest,
+                HeldItem = HeldItem,
+                Fateful = Fateful,
+                RibbonWishing = RibbonWishing,
+                SkipFormCheck = SkipFormCheck,
+                NSparkle = NSparkle,
+                Roaming = Roaming,
+                EggCycles = EggCycles,
+                TypeEncounter = TypeEncounter,
+            };
+        }
+    }
+
+    public class EncounterStaticShadow : EncounterStatic
+    {
+        public EncounterLock[] Locks;
+        protected override EncounterStatic Clone(int location)
+        {
+            throw new System.Exception();
         }
     }
 }

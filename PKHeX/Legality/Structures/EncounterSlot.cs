@@ -7,6 +7,7 @@
         public int LevelMin { get; set; }
         public int LevelMax { get; set; }
         public SlotType Type = SlotType.Any;
+        public EncounterType TypeEncounter = EncounterType.None;
         public bool AllowDexNav;
         public bool Pressure;
         public bool DexNav;
@@ -17,7 +18,6 @@
         public bool EggEncounter => false;
         public int Generation { get; set; } = -1;
 
-        public EncounterSlot() { }
         public virtual EncounterSlot Clone()
         {
             return new EncounterSlot
@@ -46,7 +46,6 @@
     public class EncounterSlot1 : EncounterSlot
     {
         public int Rate;
-        public EncounterSlot1() { }
         public override EncounterSlot Clone()
         {
             return new EncounterSlot1

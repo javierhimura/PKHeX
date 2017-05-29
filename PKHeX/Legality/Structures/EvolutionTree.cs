@@ -13,7 +13,6 @@ namespace PKHeX.Core
         private readonly int MaxSpeciesTree;
         private readonly int Generation;
 
-
         public EvolutionTree(byte[][] data, GameVersion game, PersonalTable personal, int maxSpeciesTree)
         {
             Game = game;
