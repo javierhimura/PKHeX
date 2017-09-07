@@ -2207,5 +2207,70 @@ namespace PKHeX.Core
         {
             return HeadbuttTreesC.FirstOrDefault(a => a.Location == Slot.Location);
         }
+
+        internal static IEnumerable<LearnLevel> GetLearnLevelG2Info(bool Inheritable, int move, DexLevel[] EvoChain)
+        {
+            if(Inheritable)
+            {
+                yield return new LearnLevel(1, GameVersion.GSC, MoveSource.InheritLevelUp, 1, true);
+            }
+
+            bool NonTradeback = move > MaxMoveID_1;
+            for(int EvoPhase = 1; EvoPhase <= EvoChain.Length; EvoPhase++)
+            {
+                var evo = EvoChain[EvoPhase - 1];
+                int levelGS = LevelUpGS[evo.Species].GetLevelLearnMove(move);
+                int levelC = 0;
+                if (AllowGen2VCCrystal)
+                    levelC = LevelUpC[evo.Species].GetLevelLearnMove(move);
+
+                if (levelGS == 0 && levelC == 0)
+                    continue;
+
+                if (levelGS == levelC && AllowGen2VCCrystal)
+                    yield return new LearnLevel(levelGS, GameVersion.GSC, MoveSource.LevelUp, EvoPhase, NonTradeback);
+                else
+                {
+                    if (levelGS > 0)
+                        yield return new LearnLevel(levelGS, GameVersion.GS, MoveSource.LevelUp, EvoPhase, NonTradeback);
+                    if (levelC > 0)
+                        yield return new LearnLevel(levelC, GameVersion.C, MoveSource.LevelUp, EvoPhase, NonTradeback);
+                }
+            }
+        }
+
+        internal static IEnumerable<LearnLevel> GetLearnLevelG1Info(int move, DexLevel[] EvoChain)
+        {
+            for (int EvoPhase = 1; EvoPhase <= EvoChain.Length; EvoPhase++)
+            {
+                var evo = EvoChain[EvoPhase - 1];
+                int levelRB= LevelUpRB[evo.Species].GetLevelLearnMove(move);
+                int levelY = LevelUpY[evo.Species].GetLevelLearnMove(move);
+
+                if (levelRB == 0 && levelY == 0)
+                    continue;
+
+                if (levelRB == levelY)
+                    yield return new LearnLevel(levelRB, GameVersion.RBY, MoveSource.LevelUp, EvoPhase, false);
+                else
+                {
+                    if (levelRB > 0)
+                        yield return new LearnLevel(levelRB, GameVersion.RB, MoveSource.LevelUp, EvoPhase, false);
+                    if (levelY > 0)
+                        yield return new LearnLevel(levelY, GameVersion.Y, MoveSource.LevelUp, EvoPhase, false);
+                }
+            }
+        }
+
+        internal static LearnLevel[] GetLearnLevelGBInfo(int[] InheritLvlUp, PKM pkm, int move, DexLevel[][] EvoChains)
+        {
+            if (pkm.Gen1_NotTradeback)
+                return GetLearnLevelG1Info(move, EvoChains[1]).ToArray();
+
+            if (pkm.Gen2_NotTradeback)
+                return GetLearnLevelG1Info(move, EvoChains[2]).ToArray();
+            return GetLearnLevelG1Info(move, EvoChains[2]).Union(GetLearnLevelG1Info(move, EvoChains[1])).ToArray();
+        }
+
     }
 }

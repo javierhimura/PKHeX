@@ -459,6 +459,156 @@ namespace PKHeX.Core
                 }
             }
         }
+        private static void ParseGSCIncompatibleMoves(PKM pkm, LegalInfo info,LearnInfo learnInfo, IList<CheckMoveResult> res, int[] moves)
+        {
+            var StrictLearnMoves = new List<int>();
+            for (int m = 0; m < 4; m++)
+            {
+                if (res[m].Valid && res[m].Generation > 2)
+                    continue;
+
+                if (res[m].Source == MoveSource.LevelUp)
+                {
+                    if(moves[m] <=Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]))
+                    {
+                        res[m] = new CheckMoveResult(MoveSource.InheritLevelUp, 2, Severity.Valid, V345, CheckIdentifier.Move);
+                        continue;
+                    }
+                    StrictLearnMoves.Add(m);
+                }
+            }
+
+            if (StrictLearnMoves.Count <= 1)
+                return;
+
+            var LearnLevelMoves = new LearnLevel[StrictLearnMoves.Count][];
+            for (int m = 0; m < StrictLearnMoves.Count; m++)
+            {
+                bool inheritable = moves[m] > Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]);
+                LearnLevelMoves[m] = Legal.GetLearnLevelGBInfo(learnInfo.Source.EggLevelUpSource, pkm, moves[m], info.EvoChainsAllGens);
+            }
+
+            var ValidLearnMoves = GetGBLegalCombinations(info.EvoChainsAllGens[2], LearnLevelMoves);
+
+            for (int m = 0; m < StrictLearnMoves.Count; m++)
+            {
+                var move = StrictLearnMoves[m];
+                if (ValidLearnMoves != null)
+                {
+                    var LearnMove = ValidLearnMoves[m];
+                    res[move] = new CheckMoveResult(LearnMove.MoveSource, LearnMove.Generation, Severity.Valid, "", CheckIdentifier.Move);
+                }
+                else
+                    res[move] = new CheckMoveResult(res[move], Severity.Invalid, "", CheckIdentifier.Move);
+            }
+        }
+
+        private static bool IsLegalGBCombinationTradeback(LearnLevel learn1, LearnLevel learn2)
+        {
+            if (learn1.NonTradeback && GameVersion.RBY.Contains(learn2.Source))
+                return false;
+
+            return true;
+        }
+
+        private static bool IsLegalGBCombination2EqLvl(DexLevel[] EvoChain, LearnLevel learn1, LearnLevel learn2)
+        {
+            switch(learn2.EvoPhase - learn1.EvoPhase)
+            {
+                case 2:
+                    if (EvoChain[2].RequiresLvlUp && EvoChain[1].RequiresLvlUp)
+                        return false;
+                    goto case 1;
+                case 1:
+                    return IsLegalGBCombinationTradeback(learn1, learn2);
+                case 0:
+                    return learn1.Source.Intersect(learn2.Source);
+            }
+            return false;
+        }
+
+        private static bool IsLegalGBCombination2(DexLevel[] EvoChain, LearnLevel learn1, LearnLevel learn2)
+        {
+            if (learn1.MinLevel == learn2.MinLevel)
+            {
+                if (learn1.EvoPhase > learn2.EvoPhase)
+                    return IsLegalGBCombination2EqLvl(EvoChain, learn2, learn1);
+                else
+                    return IsLegalGBCombination2EqLvl(EvoChain, learn1, learn2);
+            }
+
+            if (learn1.MinLevel > learn2.MinLevel)
+                return IsLegalGBCombination2EqLvl(EvoChain, learn2, learn1);
+
+            if (!IsLegalGBCombinationTradeback(learn1, learn2))
+                return false;
+
+            return learn1.EvoPhase <= learn2.EvoPhase;
+        }
+        private static bool IsLegalGBCombination3(DexLevel[] EvoChain, LearnLevel learn1, LearnLevel learn2, LearnLevel learn3)
+        {
+            if(EvoChain.Length == 3 && learn1.EvoPhase != learn2.EvoPhase && learn2.EvoPhase != learn3.EvoPhase && EvoChain[1].RequiresLvlUp && EvoChain[2].RequiresLvlUp)
+            {
+                return false;
+            }
+
+            return IsLegalGBCombination2(EvoChain,learn1,learn2) && IsLegalGBCombination2(EvoChain, learn2, learn3);
+        }
+        private static LearnLevel[] GetGBLegalCombinations(DexLevel[] EvoChain, LearnLevel[][] LearnLevelMoves)
+        {
+            foreach (var LearnLevel1 in LearnLevelMoves[0])
+            {
+                var Result2 = GetGBLegalCombinations2(EvoChain, LearnLevelMoves, LearnLevel1);
+                if (Result2 != null)
+                    return Result2;
+            }
+            return null;
+        }
+        private static LearnLevel[] GetGBLegalCombinations2(DexLevel[] EvoChain, LearnLevel[][] LearnLevelMoves, LearnLevel LearnLevel1)
+        {
+            foreach (var LearnLevel2 in LearnLevelMoves[1])
+            {
+                if (!IsLegalGBCombination2(EvoChain, LearnLevel1, LearnLevel2))
+                    continue;
+                if (LearnLevelMoves.Length == 2)
+                    return new LearnLevel[2] { LearnLevel1, LearnLevel2 };
+                var Result3 = GetGBLegalCombinations3(EvoChain, LearnLevelMoves, LearnLevel1, LearnLevel2);
+                if (Result3 != null)
+                    return Result3;
+            }
+            return null;
+        }
+        private static LearnLevel[] GetGBLegalCombinations3(DexLevel[] EvoChain, LearnLevel[][] LearnLevelMoves, LearnLevel LearnLevel1, LearnLevel LearnLevel2)
+        {
+            foreach (var LearnLevel3 in LearnLevelMoves[1])
+            {
+                if (!IsLegalGBCombination2(EvoChain, LearnLevel1, LearnLevel3) || !IsLegalGBCombination2(EvoChain, LearnLevel2, LearnLevel3))
+                    continue;
+                if (!IsLegalGBCombination3(EvoChain, LearnLevel1, LearnLevel2, LearnLevel3))
+                    continue;
+                if (LearnLevelMoves.Length == 3)
+                    return new LearnLevel[3] { LearnLevel1, LearnLevel2 , LearnLevel3 };
+
+                var Result4 = GetGBLegalCombinations4(EvoChain, LearnLevelMoves, LearnLevel1, LearnLevel2, LearnLevel3);
+                if(Result4 != null)
+                    return Result4;
+            }
+            return null;
+        }
+        private static LearnLevel[] GetGBLegalCombinations4(DexLevel[] EvoChain, LearnLevel[][] LearnLevelMoves, LearnLevel LearnLevel1, LearnLevel LearnLevel2, LearnLevel LearnLevel3)
+        {
+            foreach (var LearnLevel4 in LearnLevelMoves[1])
+            {
+                if (!IsLegalGBCombination2(EvoChain, LearnLevel1, LearnLevel4) || !IsLegalGBCombination2(EvoChain, LearnLevel2, LearnLevel4) || !IsLegalGBCombination2(EvoChain, LearnLevel3, LearnLevel4))
+                    continue;
+                if (!IsLegalGBCombination3(EvoChain, LearnLevel1, LearnLevel2, LearnLevel4) || !IsLegalGBCombination3(EvoChain, LearnLevel2, LearnLevel3, LearnLevel4))
+                    continue;
+
+                return new LearnLevel[4] { LearnLevel1, LearnLevel2, LearnLevel3, LearnLevel4 };
+            }
+            return null;
+        }
+
         private static void ParseRedYellowIncompatibleMoves(PKM pkm, IList<CheckMoveResult> res, int[] moves)
         {
             // Check moves that are learned at the same level in red/blue and yellow, these are illegal because there is no move reminder

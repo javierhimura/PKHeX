@@ -40,6 +40,7 @@
 
     public static partial class Extensions
     {
+
         public static bool Contains(this GameVersion g1, GameVersion g2)
         {
             if (g1 == g2 || g1 == GameVersion.Any)
@@ -101,6 +102,11 @@
 
                 default: return false;
             }
+        }
+
+        public static bool Intersect(this GameVersion g1, GameVersion g2)
+        {
+            return g1.Contains(g2) || g2.Contains(g1);
         }
     }
 }
