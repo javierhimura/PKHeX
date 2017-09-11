@@ -347,6 +347,10 @@ namespace PKHeX.Core
                 ParseRedYellowIncompatibleMoves(pkm, res, moves);
                 ParseEvolutionsIncompatibleMoves(pkm, res, moves, info.EncounterMoves.TMHMMoves[1]);
             }
+            else if (!Legal.AllowGen2MoveReminder)
+            {
+                ParseMovesNoMoveReminder(pkm, info, learnInfo, res, moves);
+            }
         }
         private static void ParseMovesByGenerationLast(PKM pkm, CheckMoveResult[] res, int gen, LearnInfo learnInfo)
         {
@@ -459,19 +463,29 @@ namespace PKHeX.Core
                 }
             }
         }
-        private static void ParseGSCIncompatibleMoves(PKM pkm, LegalInfo info,LearnInfo learnInfo, IList<CheckMoveResult> res, int[] moves)
+        private static void ParseMovesNoMoveReminder(PKM pkm, LegalInfo info,LearnInfo learnInfo, IList<CheckMoveResult> res, int[] moves)
         {
             var StrictLearnMoves = new List<int>();
             for (int m = 0; m < 4; m++)
             {
-                if (res[m].Valid && res[m].Generation > 2)
+                if (!(res[m]?.Valid ?? false) || res[m].Generation > 2)
                     continue;
+
+                if(learnInfo.Source.EggLevelUpSource.Any())
+                {
+
+                }
 
                 if (res[m].Source == MoveSource.LevelUp)
                 {
-                    if(moves[m] <=Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]))
+                    if(moves[m] <= Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]))
                     {
                         res[m] = new CheckMoveResult(MoveSource.InheritLevelUp, 2, Severity.Valid, V345, CheckIdentifier.Move);
+                        continue;
+                    }
+                    if (moves[m] <= Legal.MaxMoveID_1 && learnInfo.Source.EggMoveSource.Contains(moves[m]))
+                    {
+                        res[m] = new CheckMoveResult(MoveSource.EggMove, 2, Severity.Valid, V345, CheckIdentifier.Move);
                         continue;
                     }
                     StrictLearnMoves.Add(m);
@@ -485,7 +499,7 @@ namespace PKHeX.Core
             for (int m = 0; m < StrictLearnMoves.Count; m++)
             {
                 bool inheritable = moves[m] > Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]);
-                LearnLevelMoves[m] = Legal.GetLearnLevelGBInfo(learnInfo.Source.EggLevelUpSource, pkm, moves[m], info.EvoChainsAllGens);
+                LearnLevelMoves[m] = Legal.GetLearnLevelGBInfo(inheritable, pkm, moves[m], info.EvoChainsAllGens, info.EncounterMatch.LevelMin + 1, pkm.CurrentLevel);
             }
 
             var ValidLearnMoves = GetGBLegalCombinations(info.EvoChainsAllGens[2], LearnLevelMoves);
@@ -529,21 +543,22 @@ namespace PKHeX.Core
 
         private static bool IsLegalGBCombination2(DexLevel[] EvoChain, LearnLevel learn1, LearnLevel learn2)
         {
-            if (learn1.MinLevel == learn2.MinLevel)
+
+            switch(learn1.MinLevel)
             {
-                if (learn1.EvoPhase > learn2.EvoPhase)
-                    return IsLegalGBCombination2EqLvl(EvoChain, learn2, learn1);
-                else
-                    return IsLegalGBCombination2EqLvl(EvoChain, learn1, learn2);
+                case int n when (n < learn2.MinLevel):
+                    return IsLegalGBCombinationTradeback(learn1, learn2) && learn1.EvoPhase <= learn2.EvoPhase;
+                 
+                case int n when (n > learn2.MinLevel):
+                    return IsLegalGBCombinationTradeback(learn2, learn1) && learn2.EvoPhase <= learn1.EvoPhase;
+                    
+                //case int n when (n == learn2.MinLevel):
+                default:
+                    if (learn1.EvoPhase > learn2.EvoPhase)
+                        return IsLegalGBCombination2EqLvl(EvoChain, learn2, learn1);
+                    else
+                        return IsLegalGBCombination2EqLvl(EvoChain, learn1, learn2);
             }
-
-            if (learn1.MinLevel > learn2.MinLevel)
-                return IsLegalGBCombination2EqLvl(EvoChain, learn2, learn1);
-
-            if (!IsLegalGBCombinationTradeback(learn1, learn2))
-                return false;
-
-            return learn1.EvoPhase <= learn2.EvoPhase;
         }
         private static bool IsLegalGBCombination3(DexLevel[] EvoChain, LearnLevel learn1, LearnLevel learn2, LearnLevel learn3)
         {

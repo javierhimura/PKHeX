@@ -74,6 +74,7 @@ namespace PKHeX.WinForms
 
         private static void StartPKHeX()
         {
+            PKHeX.Core.Legal.TestG2Moves();
             // Run the application
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

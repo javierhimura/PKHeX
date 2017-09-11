@@ -6,15 +6,16 @@ namespace PKHeX.Core
 {
     internal class LearnLevel
     {
-        internal LearnLevel(int _MinLevel, GameVersion _Source, MoveSource _MoveSource, int _EvoPhase, bool _NonTradeback)
+        internal LearnLevel(int _Move, int _MinLevel, GameVersion _Source, MoveSource _MoveSource, int _EvoPhase)
         {
+            Move = _Move;
             MinLevel = _MinLevel;
             Source = _Source;
             EvoPhase = _EvoPhase;
-            NonTradeback = _NonTradeback;
             MoveSource = _MoveSource;
         }
 
+        public int Move { get; set; }
         public int MinLevel { get; set; }
         public virtual int MaxLevel
         {
@@ -24,7 +25,7 @@ namespace PKHeX.Core
         public virtual bool IsTM => false;
         public GameVersion Source { get; set; }
         public int EvoPhase { get; set; }
-        public bool NonTradeback { get; set; }
+        public bool NonTradeback => Move <= Legal.MaxMoveID_1;
         public int MinGeneration => NonTradeback ? 1 : 2;
         public int Generation => GameVersion.RBY.Contains(Source) ? 1 : 2;
         public MoveSource MoveSource { get; set; }
