@@ -476,7 +476,7 @@ namespace PKHeX.Core
 
                 }
 
-                if (res[m].Source == MoveSource.LevelUp)
+                if (res[m].Source == MoveSource.LevelUp || (res[m].Source == MoveSource.TMHM && res[m].Generation == 1) || (res[m].Source == MoveSource.Initial && pkm.Moves[m] > Legal.MaxMoveID_1))
                 {
                     if(moves[m] <= Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]))
                     {
@@ -499,7 +499,7 @@ namespace PKHeX.Core
             for (int m = 0; m < StrictLearnMoves.Count; m++)
             {
                 bool inheritable = moves[m] > Legal.MaxMoveID_1 && learnInfo.Source.EggLevelUpSource.Contains(moves[m]);
-                LearnLevelMoves[m] = Legal.GetLearnLevelGBInfo(inheritable, pkm, moves[m], info.EvoChainsAllGens, info.EncounterMatch.LevelMin + 1, pkm.CurrentLevel);
+                LearnLevelMoves[m] = Legal.GetLearnLevelGBInfo(inheritable, pkm, moves[m], info.EvoChainsAllGens, info.Generation);
             }
 
             var ValidLearnMoves = GetGBLegalCombinations(info.EvoChainsAllGens[2], LearnLevelMoves);

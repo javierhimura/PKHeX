@@ -64,12 +64,21 @@ namespace PKHeX.Core
             return Math.Max(end - 4, 1);
         }
 
-        /// <summary>Returns the level that a Pokémon can learn the specified move.</summary>
+        /// <summary>Returns the min level that a Pokémon can learn the specified move.</summary>
         /// <param name="move">Move ID</param>
         /// <returns>Level the move is learned at. If the result is below 0, it cannot be learned by levelup.</returns>
         public int GetLevelLearnMove(int move)
         {
             int index = Array.IndexOf(Moves, move);
+            return index < 0 ? 0 : Levels[index];
+        }
+
+        /// <summary>Returns the max level that a Pokémon can learn the specified move.</summary>
+        /// <param name="move">Move ID</param>
+        /// <returns>Level the move is learned at. If the result is below 0, it cannot be learned by levelup.</returns>
+        public int GetMaxLevelLearnMove(int move)
+        {
+            int index = Array.LastIndexOf(Moves, move);
             return index < 0 ? 0 : Levels[index];
         }
     }

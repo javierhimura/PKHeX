@@ -113,6 +113,34 @@ namespace PKHeX.Core
             Legal.AllowGBCartEra = false;
             List<TimeSpan> TimeMoves = new List<TimeSpan>();
             List<TimeSpan> TimeSpecies = new List<TimeSpan>();
+
+            for (int i = 1; i <= 251; i++)
+            {
+                PKM pkm = new PK2();
+                pkm.Species = i;
+                pkm.CurrentLevel = 100;
+                DexLevel[] EvoChainG2 = GetValidPreEvolutions(pkm).ToArray();
+                DexLevel[] EvoChainG1 = GetValidPreEvolutions(pkm, 151).ToArray();
+                if (EvoChainG2.Length <= 1)
+                    continue;
+
+                int[][] tmhm = new int[EvoChainG1.Length][];
+                for(int e = 0; e < EvoChainG1.Length; e++)
+                {
+                    tmhm[e] = GetTMHM(pkm, EvoChainG1[e].Species, 0, 1, GameVersion.Any, false).ToArray();
+                }
+                for (int e1 = 1; e1 < EvoChainG1.Length; e1++)
+                {
+                    for (int e2 = 0; e2 < e1; e2++)
+                    {
+                        if(tmhm[e1].Any(m => !tmhm[e2].Contains(m)))
+                        {
+
+                        }
+                    }
+                }
+            }
+
             for (int i = 1; i <= 251; i++)
             {
                 PKM pkm = new PK2();
@@ -2292,7 +2320,7 @@ namespace PKHeX.Core
             return HeadbuttTreesC.FirstOrDefault(a => a.Location == Slot.Location);
         }
 
-        internal static IEnumerable<LearnLevel> GetLearnLevelG2Info(bool Inheritable, int move, DexLevel[] EvoChain, int minlevel, int maxlevel)
+        internal static IEnumerable<LearnLevel> GetLearnLevelG2Info(bool Inheritable, bool initial, int move, DexLevel[] EvoChain)
         {
             if (Inheritable)
             {
@@ -2301,74 +2329,93 @@ namespace PKHeX.Core
 
             for(int EvoPhase = 1; EvoPhase <= EvoChain.Length; EvoPhase++)
             {
-                var evo = EvoChain[EvoPhase - 1];
-                int levelGS = LevelUpGS[evo.Species].GetLevelLearnMove(move);
-                if (levelGS < minlevel || levelGS > maxlevel)
+                MoveSource MvSourceGS = MoveSource.LevelUp;
+                MoveSource MvSourceC = MoveSource.LevelUp;
+                var evo = EvoChain[EvoPhase - 1].Species;
+                var minlevel = EvoChain[EvoPhase - 1].MinLevel;
+                var maxlevel = EvoChain[EvoPhase - 1].Level;
+
+                int levelGS = LevelUpGS[evo].GetMaxLevelLearnMove(move);
+                if (levelGS < minlevel || levelGS > maxlevel || (!initial && levelGS == minlevel && EvoPhase == 1))
                     levelGS = 0;
               
-
-
                 int levelC = 0;
                 if (AllowGen2VCCrystal)
                 {
-                    levelC = LevelUpC[evo.Species].GetLevelLearnMove(move);
-                    if (levelC < minlevel || levelC > maxlevel)
+                    levelC = LevelUpC[evo].GetMaxLevelLearnMove(move);
+                    if (levelC < minlevel || levelC > maxlevel || (!initial && levelC == minlevel && EvoPhase == 1))
                         levelC = 0;
                 }
 
                 if (levelGS == 0 && levelC == 0)
                     continue;
 
+                if (initial && levelGS == minlevel && EvoPhase == 1)
+                    MvSourceGS = MoveSource.Initial;
+
+                if (initial && levelC == minlevel && EvoPhase == 1)
+                    MvSourceC = MoveSource.Initial;
+
                 if (levelGS == levelC && AllowGen2VCCrystal)
-                    yield return new LearnLevel(move, levelGS, GameVersion.GSC, MoveSource.LevelUp, EvoPhase);
+                    yield return new LearnLevel(move, levelGS, GameVersion.GSC, MvSourceGS, EvoPhase);
                 else
                 {
                     if (levelGS > 0)
-                        yield return new LearnLevel(move, levelGS, GameVersion.GS, MoveSource.LevelUp, EvoPhase);
+                        yield return new LearnLevel(move, levelGS, GameVersion.GS, MvSourceGS, EvoPhase);
                     if (levelC > 0)
-                        yield return new LearnLevel(move, levelC, GameVersion.C, MoveSource.LevelUp, EvoPhase);
+                        yield return new LearnLevel(move, levelC, GameVersion.C, MvSourceC, EvoPhase);
                 }
             }
         }
 
-        internal static IEnumerable<LearnLevel> GetLearnLevelG1Info(int move, DexLevel[] EvoChain, int minlevel, int maxlevel)
+        internal static IEnumerable<LearnLevel> GetLearnLevelG1Info(bool initial, int move, DexLevel[] EvoChain)
         {
             for (int EvoPhase = 1; EvoPhase <= EvoChain.Length; EvoPhase++)
             {
+                MoveSource MvSourceRB = MoveSource.LevelUp;
+                MoveSource MvSourceYW = MoveSource.LevelUp;
                 var evo = EvoChain[EvoPhase - 1].Species;
+                var minlevel = EvoChain[EvoPhase - 1].MinLevel;
+                var maxlevel = EvoChain[EvoPhase - 1].Level;
                 if (evo > 151)
                     continue;
-                int levelRB = LevelUpRB[evo].GetLevelLearnMove(move);
-                int levelYW = LevelUpY[evo].GetLevelLearnMove(move);
-                if (levelRB < minlevel || levelRB > maxlevel)
+                int levelRB = LevelUpRB[evo].GetMaxLevelLearnMove(move);
+                int levelYW = LevelUpY[evo].GetMaxLevelLearnMove(move);
+                if (levelRB < minlevel || levelRB > maxlevel || (levelRB == minlevel && EvoPhase == 1 && !initial))
                     levelRB = 0;
-                if (levelYW < minlevel || levelRB > maxlevel)
+                if (levelYW < minlevel || levelYW > maxlevel || (levelYW == minlevel && EvoPhase == 1 && !initial))
                     levelYW = 0;
 
                 if (levelRB == 0 && levelYW == 0)
                     continue;
 
+                if (initial && levelRB == minlevel && EvoPhase == 1)
+                    MvSourceRB = MoveSource.Initial;
+
+                if (initial && levelYW == minlevel && EvoPhase == 1)
+                    MvSourceYW = MoveSource.Initial;
+
                 if (levelRB == levelYW)
-                    yield return new LearnLevel(move, levelRB, GameVersion.RBY, MoveSource.LevelUp, EvoPhase);
+                    yield return new LearnLevel(move, levelRB, GameVersion.RBY, MvSourceRB, EvoPhase);
                 else
                 {
                     if (levelRB > 0)
-                        yield return new LearnLevel(move, levelRB, GameVersion.RB, MoveSource.LevelUp, EvoPhase);
+                        yield return new LearnLevel(move, levelRB, GameVersion.RB, MvSourceRB, EvoPhase);
                     if (levelYW > 0)
-                        yield return new LearnLevel(move, levelYW, GameVersion.YW, MoveSource.LevelUp, EvoPhase);
+                        yield return new LearnLevel(move, levelYW, GameVersion.YW, MvSourceYW, EvoPhase);
                 }
             }
         }
 
-        internal static LearnLevel[] GetLearnLevelGBInfo(bool inheritable, PKM pkm, int move, DexLevel[][] EvoChains, int minlevel, int maxlevel)
+        internal static LearnLevel[] GetLearnLevelGBInfo(bool inheritable, PKM pkm, int move, DexLevel[][] EvoChains, int generation)
         {
             if (pkm.Gen1_NotTradeback)
-                return GetLearnLevelG1Info(move, EvoChains[1], minlevel, maxlevel).ToArray();
+                return GetLearnLevelG1Info(true, move, EvoChains[1]).ToArray();
 
             if (pkm.Gen2_NotTradeback)
-                return GetLearnLevelG2Info(inheritable,move, EvoChains[2], minlevel, maxlevel).ToArray();
+                return GetLearnLevelG2Info(true, inheritable, move, EvoChains[2]).ToArray();
 
-            return GetLearnLevelG1Info(move, EvoChains[2], minlevel, maxlevel).Union(GetLearnLevelG2Info(inheritable, move, EvoChains[1], minlevel, maxlevel)).ToArray();
+            return GetLearnLevelG1Info(generation == 1, move, EvoChains[2]).Union(GetLearnLevelG2Info(generation == 2, inheritable, move, EvoChains[1])).ToArray();
         }
 
     }
