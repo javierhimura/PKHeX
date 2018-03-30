@@ -120,22 +120,41 @@ namespace PKHeX.Core
                 pkm.Species = i;
                 pkm.CurrentLevel = 100;
                 DexLevel[] EvoChainG2 = GetValidPreEvolutions(pkm).ToArray();
-                DexLevel[] EvoChainG1 = GetValidPreEvolutions(pkm, 151).ToArray();
+                if (EvoChainG2.All(e => e.Species > 151))
+                    continue;
                 if (EvoChainG2.Length <= 1)
                     continue;
+                DexLevel[] EvoChainG1 = EvoChainG2.Where(s => s.Species <= 151).ToArray();
+                if (EvoChainG1.Length <= 1)
+                    continue;
 
-                int[][] tmhm = new int[EvoChainG1.Length][];
+                int[][] tmhm1 = new int[EvoChainG1.Length][];
                 for(int e = 0; e < EvoChainG1.Length; e++)
                 {
-                    tmhm[e] = GetTMHM(pkm, EvoChainG1[e].Species, 0, 1, GameVersion.Any, false).ToArray();
+                    tmhm1[e] = GetTMHM(pkm, EvoChainG1[e].Species, 0, 1, GameVersion.Any, false).ToArray();
+                }
+                int[][] tmhm2 = new int[EvoChainG2.Length][];
+                for (int e = 0; e < EvoChainG2.Length; e++)
+                {
+                    tmhm2[e] = GetTMHM(pkm, EvoChainG2[e].Species, 0, 2, GameVersion.GSC, false).ToArray();
                 }
                 for (int e1 = 1; e1 < EvoChainG1.Length; e1++)
                 {
                     for (int e2 = 0; e2 < e1; e2++)
                     {
-                        if(tmhm[e1].Any(m => !tmhm[e2].Contains(m)))
+                        if(tmhm1[e1].Any(m => !tmhm1[e2].Contains(m)))
                         {
 
+                        }
+                    }
+                }
+                for (int e1 = 1; e1 < EvoChainG2.Length; e1++)
+                {
+                    for (int e2 = 0; e2 < e1; e2++)
+                    {
+                        if (tmhm2[e1].Any(m => !tmhm2[e2].Contains(m)) && EvoChainG2[e1].Species <= 151)
+                        {
+                            // Check gloom Hyper Beam
                         }
                     }
                 }
